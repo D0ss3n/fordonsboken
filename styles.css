@@ -13,3 +13,6 @@
 
 .vehicle-card .badge{color:var(--navy)}
 
+
+.brand-mark svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
