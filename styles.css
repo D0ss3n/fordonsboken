@@ -10,3 +10,6 @@
 /* Ensure light profile badges remain readable on the dark hero. */
 .profile-hero .badge{color:var(--navy)}
 
+
+.vehicle-card .badge{color:var(--navy)}
+
