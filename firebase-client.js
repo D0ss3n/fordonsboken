@@ -21,7 +21,7 @@ if (!configured) {
 
   window.FordonsmappenFirebase = {
     configured: true,
-    signIn: () => authSdk.signInWithPopup(auth, provider),
+    signIn: () => authSdk.signInWithRedirect(auth, provider),
     signOut: () => authSdk.signOut(auth),
     async loadState(uid) {
       const ref = firestoreSdk.doc(db, 'users', uid, 'appData', 'primary');
@@ -37,6 +37,11 @@ if (!configured) {
       });
     },
   };
+
+  authSdk.getRedirectResult(auth).catch(error => {
+    console.error('Google redirect-inloggningen misslyckades', error);
+    signal('fordonsmappen-auth-error', { code: error.code });
+  });
 
   authSdk.onAuthStateChanged(auth, user => {
     signal('fordonsmappen-auth', {
