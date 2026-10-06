@@ -1,4 +1,4 @@
-import { firebaseConfig } from './firebase-config.js?v=auth-flow-20261006';
+import { firebaseConfig } from './firebase-config.js?v=share-qr-20261006';
 
 const configured = Boolean(firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId && firebaseConfig.appId);
 const signal = (name, detail) => window.dispatchEvent(new CustomEvent(name, { detail }));
@@ -25,6 +25,19 @@ if (!configured) {
     signOut: () => authSdk.signOut(auth),
     async loadState(uid) {
       const ref = firestoreSdk.doc(db, 'users', uid, 'appData', 'primary');
+      const snapshot = await firestoreSdk.getDoc(ref);
+      return snapshot.exists() ? snapshot.data() : null;
+    },
+    async publishVehicle(vehicleId, payload) {
+      const ref = firestoreSdk.doc(db, 'publicVehicles', vehicleId);
+      await firestoreSdk.setDoc(ref, payload);
+    },
+    async removePublishedVehicle(vehicleId) {
+      const ref = firestoreSdk.doc(db, 'publicVehicles', vehicleId);
+      await firestoreSdk.deleteDoc(ref);
+    },
+    async loadPublishedVehicle(vehicleId) {
+      const ref = firestoreSdk.doc(db, 'publicVehicles', vehicleId);
       const snapshot = await firestoreSdk.getDoc(ref);
       return snapshot.exists() ? snapshot.data() : null;
     },

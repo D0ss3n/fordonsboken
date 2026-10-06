@@ -4,5 +4,15 @@ service cloud.firestore {
     match /users/{userId}/appData/{documentId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+
+    match /publicVehicles/{vehicleId} {
+      // A share link can read one selected document, but cannot browse the collection.
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['ownerUid', 'vehicle', 'events', 'updatedAt']);
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+    }
   }
 }
