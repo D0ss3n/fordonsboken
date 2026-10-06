@@ -1,4 +1,4 @@
-import { firebaseConfig } from './firebase-config.js?v=firebase-key-actual-20261006';
+import { firebaseConfig } from './firebase-config.js?v=auth-flow-20261006';
 
 const configured = Boolean(firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId && firebaseConfig.appId);
 const signal = (name, detail) => window.dispatchEvent(new CustomEvent(name, { detail }));
@@ -21,7 +21,7 @@ if (!configured) {
 
   window.FordonsmappenFirebase = {
     configured: true,
-    signIn: () => authSdk.signInWithRedirect(auth, provider),
+    signIn: () => authSdk.signInWithPopup(auth, provider),
     signOut: () => authSdk.signOut(auth),
     async loadState(uid) {
       const ref = firestoreSdk.doc(db, 'users', uid, 'appData', 'primary');
