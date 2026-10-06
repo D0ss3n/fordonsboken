@@ -28,3 +28,5 @@
 
 .event-delete{align-self:center;flex:none}
 @media(max-width:600px){.event-delete{padding:7px 9px;font-size:11px}}
+
+.btn.danger{background:#a9433b;color:#fff}
