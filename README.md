@@ -14,9 +14,9 @@ Publiceras från repots rot med GitHub Actions och GitHub Pages.
 
 ## Google-inloggning och molnsynk
 
-Firebase-projektet `fordonsmappen-af27a` är anslutet. Google-inloggning är aktiverad, GitHub Pages-domänen `d0ss3n.github.io` är godkänd och Cloud Firestore använder regionen `europe-north2` (Stockholm) på Spark-planen. Firestore-reglerna begränsar läsning och skrivning till dokument under användarens eget UID.
+Firebase-projektet `fordonsmappen-af27a` är anslutet. Google-inloggning är aktiverad, GitHub Pages-domänen `d0ss3n.github.io` är godkänd och Cloud Firestore använder regionen `europe-north2` (Stockholm) på Spark-planen. Firestore-reglerna begränsar privata dokument till kontots UID och fordonsfakta till aktiva fordonsmedlemmar; publika delningar går att läsa via sin länk.
 
-Webbkonfigurationen i `firebase-config.js` innehåller offentliga klientidentifierare och är avsedd att ingå i klientkoden. Vid första Google-inloggningen kopieras befintlig lokal fordonsdata till kontot om molnet saknar data. Därefter synkas fordonsdata och historik mellan användarens enheter. Bilagornas filinnehåll lagras för närvarande inte i molnet; appens befintliga dokumentfält innehåller bara den information som den redan sparar lokalt.
+Webbkonfigurationen i `firebase-config.js` innehåller offentliga klientidentifierare och är avsedd att ingå i klientkoden. Fordonsdata synkas till Firestore mellan användarens enheter. Bilagefiler använder Firebase Storage; bilagemetadata och filreferenser hålls privata per konto.
 
 ## Testa Firestore-regler
 
@@ -42,4 +42,6 @@ Publicering ersätter projektets nuvarande Firestore-regler med `firestore.rules
 
 ## Datamodell och migrering
 
-Den nuvarande appen använder fortfarande ett kontoägt v1-dokument. Målmodellen, migreringsmappningen och en icke-destruktiv migreringsfunktion finns i [`DATA_MODEL.md`](DATA_MODEL.md) och `vehicle-model-v2.js`/`firebase-client.js`. Migreringsfunktionen är ännu inte kopplad till appens inloggning, så inga konton har migrerats. De nya v2-reglerna finns i repots `firestore.rules` men är inte publicerade till Firebase.
+Klienten migrerar v1-data till v2 vid inloggning när v2-markören saknas, läser sedan fordon och historik från v2 och skriver fortsatta ändringar dit. Det gamla `users/{uid}/appData/primary`-dokumentet behålls som oförändrad återställningskopia; konto-inställningar sparas i `preferences-v2`. Se [`DATA_MODEL.md`](DATA_MODEL.md) för strukturen och begränsningarna.
+
+Ändringarna i klienten och `firestore.rules` måste granskas och v2-reglerna deployas innan skarp migrering kan verifieras. Ägarbyten mellan konton ingår inte i den här migreringen.

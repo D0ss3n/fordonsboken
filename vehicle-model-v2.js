@@ -41,12 +41,19 @@ export function createVehicleModelV2Plan(uid, state) {
     plan.push({
       path: `vehicles/${vehicleId}`,
       kind: 'vehicle',
-      data: { schemaVersion: 2, createdByUid: ownerUid, vehicle },
+      data: { schemaVersion: 2, createdByUid: oldVehicle._createdByUid || ownerUid, vehicle },
     });
+    const member = oldVehicle._membershipData || {};
     plan.push({
       path: `vehicles/${vehicleId}/members/${ownerUid}`,
       kind: 'member',
-      data: { schemaVersion: 2, uid: ownerUid, role: 'owner', active: true, startedAt: null },
+      data: {
+        schemaVersion: 2,
+        uid: ownerUid,
+        role: member.role || 'owner',
+        active: member.active !== false,
+        startedAt: member.startedAt ?? null,
+      },
     });
     plan.push({
       path: `users/${ownerUid}/vehicleMemberships/${vehicleId}`,
@@ -73,10 +80,16 @@ export function createVehicleModelV2Plan(uid, state) {
           mileage: number(event.mileage),
           // V1 cannot prove a claimed source; import it as user-entered.
           sourceType: 'owner_entry',
-          createdByUid: ownerUid,
+          createdByUid: event._createdByUid || ownerUid,
         },
       });
-      const { id: _id, vehicle: _vehicleId, ...privateEvent } = event;
+      const {
+        id: _id, vehicle: _vehicleId, _createdByUid, createdByUid: _creatorUid,
+        schemaVersion: _schemaVersion, category: _category, title: _title,
+        date: _date, mileage: _mileage, sourceType: _sourceType,
+        attachments: _attachments,
+        ...privateEvent
+      } = event;
       plan.push({
         path: `users/${ownerUid}/privateVehicles/${vehicleId}/eventDetails/${eventId}`,
         kind: 'private-event-details',
@@ -99,8 +112,15 @@ export function createVehicleModelV2Plan(uid, state) {
     ]) {
       for (const item of forVehicle(items, vehicleId)) {
         const itemId = documentId(item.id, `${collection}-post`);
-        const { id: _id, vehicle: _vehicleId, ...privateItem } = item;
+        const {
+          id: _id, vehicle: _vehicleId, _createdByUid, createdByUid: _creatorUid,
+          schemaVersion: _schemaVersion, ...privateItem
+        } = item;
         if (collection === 'problems') {
+          delete privateItem.title;
+          delete privateItem.date;
+          delete privateItem.mileage;
+          delete privateItem.status;
           plan.push({
             path: `vehicles/${vehicleId}/problems/${itemId}`,
             kind: 'vehicle-problem',
@@ -111,7 +131,7 @@ export function createVehicleModelV2Plan(uid, state) {
               date: text(item.date),
               mileage: number(item.mileage),
               status: text(item.status),
-              createdByUid: ownerUid,
+              createdByUid: item._createdByUid || ownerUid,
             },
           });
         }
