@@ -9,9 +9,21 @@ service cloud.firestore {
       // A share link can read one selected document, but cannot browse the collection.
       allow get: if true;
       allow list: if false;
-      allow create, update: if request.auth != null
+      // Only the creator can publish, and ownership cannot be transferred by
+      // changing ownerUid in an update. Transfers need a separate trusted flow.
+      allow create: if request.auth != null
         && request.resource.data.ownerUid == request.auth.uid
-        && request.resource.data.keys().hasOnly(['ownerUid', 'vehicle', 'events', 'updatedAt']);
+        && request.resource.data.keys().hasOnly(['ownerUid', 'vehicle', 'events', 'updatedAt'])
+        && request.resource.data.vehicle is map
+        && request.resource.data.events is list
+        && request.resource.data.updatedAt is number;
+      allow update: if request.auth != null
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.keys().hasOnly(['ownerUid', 'vehicle', 'events', 'updatedAt'])
+        && request.resource.data.vehicle is map
+        && request.resource.data.events is list
+        && request.resource.data.updatedAt is number;
       allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
     }
   }
