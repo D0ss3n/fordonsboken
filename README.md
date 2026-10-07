@@ -39,3 +39,7 @@ npx firebase-tools deploy --only firestore --project fordonsmappen-af27a
 ```
 
 Publicering ersätter projektets nuvarande Firestore-regler med `firestore.rules` i repot. Kör därför testerna och granska de aktiva reglerna i Firebase Console före publicering. Detta kommando publicerar inte webbplatsen eller Storage-reglerna.
+
+## Datamodell och migrering
+
+Den nuvarande appen använder fortfarande ett kontoägt v1-dokument. Målmodellen, migreringsmappningen och en icke-destruktiv migreringsfunktion finns i [`DATA_MODEL.md`](DATA_MODEL.md) och `vehicle-model-v2.js`/`firebase-client.js`. Migreringsfunktionen är ännu inte kopplad till appens inloggning, så inga konton har migrerats. De nya v2-reglerna finns i repots `firestore.rules` men är inte publicerade till Firebase.
