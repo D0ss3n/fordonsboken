@@ -44,6 +44,7 @@ export function createVehicleModelV2Plan(uid, state) {
       data: { schemaVersion: 2, createdByUid: oldVehicle._createdByUid || ownerUid, vehicle },
     });
     const member = oldVehicle._membershipData || {};
+    const ownershipHistoryId = member.ownershipHistoryId || `legacy-${ownerUid}`;
     plan.push({
       path: `vehicles/${vehicleId}/members/${ownerUid}`,
       kind: 'member',
@@ -53,6 +54,7 @@ export function createVehicleModelV2Plan(uid, state) {
         role: member.role || 'owner',
         active: member.active !== false,
         startedAt: member.startedAt ?? null,
+        ...(member.ownershipHistoryId ? { ownershipHistoryId } : {}),
       },
     });
     plan.push({
@@ -61,7 +63,7 @@ export function createVehicleModelV2Plan(uid, state) {
       data: { schemaVersion: 2, vehicleId, role: 'owner', active: true },
     });
     plan.push({
-      path: `vehicles/${vehicleId}/ownershipHistory/legacy-${ownerUid}`,
+      path: `vehicles/${vehicleId}/ownershipHistory/${ownershipHistoryId}`,
       kind: 'ownership-history',
       data: { schemaVersion: 2, ownerUid, startedAt: null, endedAt: null, source: 'legacy-migration' },
     });

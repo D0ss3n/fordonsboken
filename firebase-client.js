@@ -8,17 +8,19 @@ if (!configured) {
   window.FordonsmappenFirebase = { configured: false };
   signal('fordonsmappen-firebase-ready', { configured: false });
 } else {
-  const [appSdk, authSdk, firestoreSdk, storageSdk] = await Promise.all([
+  const [appSdk, authSdk, firestoreSdk, storageSdk, functionsSdk] = await Promise.all([
     import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js'),
     import('https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js'),
     import('https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js'),
     import('https://www.gstatic.com/firebasejs/12.19.0/firebase-storage.js'),
+    import('https://www.gstatic.com/firebasejs/12.19.0/firebase-functions.js'),
   ]);
 
   const app = appSdk.initializeApp(firebaseConfig);
   const auth = authSdk.getAuth(app);
   const db = firestoreSdk.getFirestore(app);
   const storage = storageSdk.getStorage(app);
+  const functions = functionsSdk.getFunctions(app, 'europe-north1');
   const provider = new authSdk.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
   const vehicleModelCache = new Map();
@@ -236,6 +238,16 @@ if (!configured) {
     },
     async deleteAttachment(path) {
       await storageSdk.deleteObject(storageSdk.ref(storage, path));
+    },
+    async createVehicleTransfer(vehicleId) {
+      const call = functionsSdk.httpsCallable(functions, 'createVehicleTransfer');
+      const response = await call({ vehicleId });
+      return response.data;
+    },
+    async acceptVehicleTransfer(code) {
+      const call = functionsSdk.httpsCallable(functions, 'acceptVehicleTransfer');
+      const response = await call({ code });
+      return response.data;
     },
     async loadState(uid) {
       const ref = docRef(`users/${uid}/appData/primary`);

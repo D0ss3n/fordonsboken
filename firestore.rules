@@ -9,6 +9,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Transfer requests are managed only by Admin SDK callable functions.
+    match /transferRequests/{transferId} {
+      allow read, write: if false;
+    }
+
     match /users/{userId}/vehicleMemberships/{vehicleId} {
       function vehiclePath() {
         return /databases/$(database)/documents/vehicles/$(vehicleId);
@@ -74,7 +79,7 @@ service cloud.firestore {
         allow list: if false;
         allow create: if request.auth != null
           && request.auth.uid == memberUid
-          && request.resource.data.keys().hasOnly(['schemaVersion', 'uid', 'role', 'active', 'startedAt'])
+          && request.resource.data.keys().hasOnly(['schemaVersion', 'uid', 'role', 'active', 'startedAt', 'ownershipHistoryId'])
           && request.resource.data.schemaVersion == 2
           && request.resource.data.uid == memberUid
           && request.resource.data.role == 'owner'
@@ -202,25 +207,31 @@ service cloud.firestore {
     }
 
     match /publicVehicles/{vehicleId} {
+      function isCurrentOwner() {
+        let memberPath = /databases/$(database)/documents/vehicles/$(vehicleId)/members/$(request.auth.uid);
+        return request.auth != null
+          && exists(memberPath)
+          && get(memberPath).data.active == true
+          && get(memberPath).data.role == 'owner';
+      }
       // A share link can read one selected document, but cannot browse the collection.
       allow get: if true;
       allow list: if false;
-      // Only the creator can publish, and ownership cannot be transferred by
-      // changing ownerUid in an update. Transfers need a separate trusted flow.
-      allow create: if request.auth != null
+      // A former owner cannot republish a public snapshot after handover.
+      allow create: if isCurrentOwner()
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.keys().hasOnly(['ownerUid', 'vehicle', 'events', 'updatedAt'])
         && request.resource.data.vehicle is map
         && request.resource.data.events is list
         && request.resource.data.updatedAt is number;
-      allow update: if request.auth != null
+      allow update: if isCurrentOwner()
         && resource.data.ownerUid == request.auth.uid
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.keys().hasOnly(['ownerUid', 'vehicle', 'events', 'updatedAt'])
         && request.resource.data.vehicle is map
         && request.resource.data.events is list
         && request.resource.data.updatedAt is number;
-      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+      allow delete: if isCurrentOwner() && resource.data.ownerUid == request.auth.uid;
     }
   }
 }

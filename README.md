@@ -14,7 +14,7 @@ Publiceras från repots rot med GitHub Actions och GitHub Pages.
 
 ## Google-inloggning och molnsynk
 
-Firebase-projektet `fordonsmappen-af27a` är anslutet. Google-inloggning är aktiverad, GitHub Pages-domänen `d0ss3n.github.io` är godkänd och Cloud Firestore använder regionen `europe-north2` (Stockholm) på Spark-planen. Firestore-reglerna begränsar privata dokument till kontots UID och fordonsfakta till aktiva fordonsmedlemmar; publika delningar går att läsa via sin länk.
+Firebase-projektet `fordonsmappen-af27a` är anslutet. Google-inloggning är aktiverad, GitHub Pages-domänen `d0ss3n.github.io` är godkänd och Cloud Firestore använder regionen `europe-north2` (Stockholm) på Spark-planen. Firestore-reglerna begränsar privata dokument till kontots UID och fordonsfakta till aktiva fordonsmedlemmar; publika delningar går att läsa via sin länk. Ägarbyte hanteras av två autentiserade Firebase callable functions i regionen `europe-north1`.
 
 Webbkonfigurationen i `firebase-config.js` innehåller offentliga klientidentifierare och är avsedd att ingå i klientkoden. Fordonsdata synkas till Firestore mellan användarens enheter. Bilagefiler använder Firebase Storage; bilagemetadata och filreferenser hålls privata per konto.
 
@@ -27,7 +27,7 @@ npm install
 npm run test:rules
 ```
 
-Testerna verifierar att ägaren kan hantera sin delning, att en annan användare inte kan ändra/ta över/radera den, att användare inte kan läsa varandras privata kontodata och att en publik delningslänk bara kan läsa ett enskilt dokument. Publika fordonsprofiler är avsiktligt läsbara för alla som har länken.
+Testerna verifierar ägarens delning, att en tidigare ägare inte kan återpublicera profilen, att en annan användare inte kan ta över delningen, att användare inte kan läsa varandras privata kontodata och att en publik delningslänk bara kan läsa ett enskilt dokument. Publika fordonsprofiler är avsiktligt läsbara för alla som har länken.
 
 ## Publicera Firestore-regler
 
@@ -39,6 +39,21 @@ npx firebase-tools deploy --only firestore --project fordonsmappen-af27a
 ```
 
 Publicering ersätter projektets nuvarande Firestore-regler med `firestore.rules` i repot. Kör därför testerna och granska de aktiva reglerna i Firebase Console före publicering. Detta kommando publicerar inte webbplatsen eller Storage-reglerna.
+
+## Ägarbyte med överföringskod
+
+Ägarbyte använder Firebase Functions (Node.js 22) och kräver att Firebase-projektet har Blaze-plan/billing aktiverat för att Functions ska kunna deployas. Koden skapas av `createVehicleTransfer`, är 128 bitar slumpmässig, gäller i 24 timmar och lagras bara som SHA-256-hash. Köparen måste vara inloggad med Google och löser in den via `acceptVehicleTransfer`. Funktionen uppdaterar medlemskap, kontots fordonsindex, ägarhistorik och stänger den gamla publika profilen i en Firestore-transaktion. Tidigare ägares privata anteckningar och originalbilagor följer inte med.
+
+Installera Functions-beroenden och deploya först efter att ändringen granskats:
+
+```sh
+cd functions
+npm install
+cd ..
+npx firebase-tools deploy --only functions,firestore --project fordonsmappen-af27a
+```
+
+Deployen har inte körts som del av den här ändringen. Kör `npm run test:rules` och granska sedan Firebase Console.
 
 ## Datamodell och migrering
 

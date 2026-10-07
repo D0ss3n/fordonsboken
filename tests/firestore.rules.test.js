@@ -40,11 +40,24 @@ beforeEach(async () => {
   await env.clearFirestore();
 });
 
+async function seedActiveOwner(uid, id = vehicleId) {
+  await env.withSecurityRulesDisabled(async context => {
+    const db = context.firestore();
+    await setDoc(doc(db, `vehicles/${id}`), {
+      schemaVersion: 2, createdByUid: uid, vehicle: { id, name: 'Testbil' },
+    });
+    await setDoc(doc(db, `vehicles/${id}/members/${uid}`), {
+      schemaVersion: 2, uid, role: 'owner', active: true, startedAt: null,
+    });
+  });
+}
+
 after(async () => {
   await env?.cleanup();
 });
 
 test('an owner can publish, update, and remove their share', async () => {
+  await seedActiveOwner('alice');
   const alice = env.authenticatedContext('alice').firestore();
   const ref = doc(alice, sharePath);
 
@@ -89,11 +102,32 @@ test('private account data remains inaccessible to a different account', async (
 });
 
 test('share documents reject fields outside the explicit top-level allowlist', async () => {
+  await seedActiveOwner('alice');
   const alice = env.authenticatedContext('alice').firestore();
   await assertFails(setDoc(doc(alice, sharePath), {
     ...shareData,
     email: 'private@example.com',
   }));
+});
+
+test('a former owner cannot republish a vehicle after ownership changes', async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    const db = context.firestore();
+    await setDoc(doc(db, `vehicles/${vehicleId}`), {
+      schemaVersion: 2, createdByUid: 'alice', vehicle: { id: vehicleId, name: 'Testbil' },
+    });
+    await setDoc(doc(db, `vehicles/${vehicleId}/members/alice`), {
+      schemaVersion: 2, uid: 'alice', role: 'former_owner', active: false, startedAt: null,
+    });
+    await setDoc(doc(db, `vehicles/${vehicleId}/members/bob`), {
+      schemaVersion: 2, uid: 'bob', role: 'owner', active: true, startedAt: null,
+    });
+  });
+
+  const alice = env.authenticatedContext('alice').firestore();
+  const bob = env.authenticatedContext('bob').firestore();
+  await assertFails(setDoc(doc(alice, sharePath), shareData));
+  await assertSucceeds(setDoc(doc(bob, sharePath), { ...shareData, ownerUid: 'bob' }));
 });
 
 test('v2 owner bootstrap, vehicle facts, and private data follow separate access rules', async () => {

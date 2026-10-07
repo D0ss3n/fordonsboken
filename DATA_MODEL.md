@@ -4,7 +4,7 @@
 
 Ett fordon ska kunna finnas kvar när ett konto avslutas eller ägaren byts. Fordonets historik och en användares privata uppgifter lagras därför separat. Registreringsnummer är identifierande information och får inte användas som bevis på ägande.
 
-Klientkoden är nu kopplad till v2-modellen. Vid inloggning migreras ett befintligt v1-dokument om v2-markören saknas. Appen läser därefter fordonsdata från v2 och skriver fortsatta ändringar dit. De nya reglerna och klientändringarna måste fortfarande testas, granskas och publiceras innan flödet används i produktion.
+Klientkoden är kopplad till v2-modellen. Vid inloggning migreras ett befintligt v1-dokument om v2-markören saknas. Ägarbyte körs genom Firebase callable functions och uppdaterar Firestore-medlemskap och ägarhistorik atomiskt. Regler, Functions och klientkod måste testas, granskas och publiceras innan flödet används i produktion.
 
 ## Firestore-struktur
 
@@ -17,7 +17,7 @@ vehicles/{vehicleId}
   members/{uid}
   ownershipHistory/{ownershipId}
   publicShares/{shareId}
-  transferRequests/{requestId}
+  (transfer requests live in top-level transferRequests/{sha256(code)} documents)
 
 users/{uid}/privateVehicles/{vehicleId}
   reminders/{reminderId}
@@ -59,7 +59,7 @@ Bilagor sparas privat per konto som standard. En bilagereferens i historiken är
 
 ### Överföringar
 
-`transferRequests` håller en tidsbegränsad engångsförfrågan. En betrodd backend ska validera token och acceptera överföringen atomiskt, lägga till den nya åtkomsten, avsluta den gamla ägarperioden och låsa tidigare historik. Detta kräver ett senare separat implementeringssteg; nuvarande lokala överföringskod gör inte detta.
+`transferRequests/{sha256(code)}` lagrar en tidsbegränsad engångsförfrågan. Två Firebase callable functions hanterar flödet: `createVehicleTransfer` kräver att säljaren är aktiv ägare och returnerar en slumpmässig 128-bitars kod som visas en gång; bara SHA-256-hashen lagras. Koden gäller i 24 timmar. `acceptVehicleTransfer` kräver inloggad köpare och genomför kontroll, kodförbrukning, byte av medlemskap/index, avslut av tidigare ägarperiod och skapande av ny ägarhistorik i en Firestore-transaktion. Den gamla publika profilen tas bort och tidigare ägares privata uppgifter och bilagor förblir privata. Funktionerna ligger i `functions/` och behöver deployas separat med Firebase CLI; Firebase Functions kräver Blaze-plan/billing.
 
 ## Migrering från v1
 
@@ -71,4 +71,4 @@ Nuvarande v1-data är en sammanhållen blob i `users/{uid}/appData/primary`. Kli
 4. Jämför antal poster och fält före/efter och verifiera åtkomst med olika användare i emulatorn.
 5. Skriv en komplett migreringsmarkör först när kopieringen lyckats. Läs och synka sedan fordonsdata i v2; spara konto-inställningar i `preferences-v2`.
 
-v1-kopian skrivs inte över efter att den skapats. Ingen migrering sker förrän användaren loggar in och appen får läsa/skriva med aktiva Firestore-regler. V2-reglerna måste därför deployas före ett skarpt migreringstest. Överföringar mellan ägare och publicerade v2-delningar är separata senare steg.
+v1-kopian skrivs inte över efter att den skapats. Ingen migrering sker förrän användaren loggar in och appen får läsa/skriva med aktiva Firestore-regler. V2-reglerna måste därför deployas före ett skarpt migreringstest. Överföringsflödet behöver verifieras i emulator och genom ett kontrollerat test med två inloggade konton före produktionsbruk.
