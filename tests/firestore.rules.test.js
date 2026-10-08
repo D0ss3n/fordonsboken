@@ -20,11 +20,12 @@ import {
 const projectId = 'demo-fordonsmappen-rules';
 const sharePath = 'publicVehicles/car-share-token';
 const shareData = {
-  ownerUid: 'alice',
-  vehicle: { name: 'Min bil' },
-  events: [],
+  schemaVersion: 2,
+  vehicle: { name: 'Min bil', type: 'Bil', make: 'Volvo', model: 'V60', year: '2015', mileage: 18420 },
+  events: [{ category: 'Service', title: 'Service utförd', date: '2026-01-02', mileage: 18000, sourceType: 'owner_entry' }],
   updatedAt: Date.now(),
 };
+const legacyShareData = { ...shareData, ownerUid: 'alice', vehicle: { ...shareData.vehicle, registration: 'ABC123' } };
 const vehicleId = 'legacy-car-1';
 
 let env;
@@ -56,36 +57,30 @@ after(async () => {
   await env?.cleanup();
 });
 
-test('an owner can publish, update, and remove their share', async () => {
-  await seedActiveOwner('alice');
-  const alice = env.authenticatedContext('alice').firestore();
-  const ref = doc(alice, sharePath);
-
-  await assertSucceeds(setDoc(ref, shareData));
-  await assertSucceeds(updateDoc(ref, { updatedAt: Date.now() }));
-  await assertSucceeds(deleteDoc(ref));
-});
-
-test('a share link can read one shared document, but cannot list shares', async () => {
+test('public links read sanitized token documents but not legacy owner-ID shares', async () => {
   await env.withSecurityRulesDisabled(async context => {
-    await setDoc(doc(context.firestore(), sharePath), shareData);
+    const db = context.firestore();
+    await setDoc(doc(db, sharePath), shareData);
+    await setDoc(doc(db, 'publicVehicles/legacy-car-1'), legacyShareData);
   });
 
   const visitor = env.unauthenticatedContext().firestore();
   await assertSucceeds(getDoc(doc(visitor, sharePath)));
+  await assertFails(getDoc(doc(visitor, 'publicVehicles/legacy-car-1')));
   await assertFails(getDocs(collection(visitor, 'publicVehicles')));
 });
 
-test('another account cannot take over, edit, or delete an owner share', async () => {
+test('clients cannot publish, edit, or revoke public profiles directly', async () => {
+  await seedActiveOwner('alice');
   await env.withSecurityRulesDisabled(async context => {
     await setDoc(doc(context.firestore(), sharePath), shareData);
   });
-
-  const bob = env.authenticatedContext('bob').firestore();
-  const ref = doc(bob, sharePath);
-  await assertFails(updateDoc(ref, { ownerUid: 'bob' }));
-  await assertFails(updateDoc(ref, { 'vehicle.name': 'Övertagen bil' }));
+  const alice = env.authenticatedContext('alice').firestore();
+  const ref = doc(alice, sharePath);
+  await assertFails(setDoc(doc(alice, 'publicVehicles/another-token'), shareData));
+  await assertFails(updateDoc(ref, { updatedAt: Date.now() }));
   await assertFails(deleteDoc(ref));
+  await assertFails(getDoc(doc(alice, 'users/alice/publicShareMappings/legacy-car-1')));
 });
 
 test('private account data remains inaccessible to a different account', async () => {
@@ -101,13 +96,12 @@ test('private account data remains inaccessible to a different account', async (
   await assertFails(getDoc(doc(bob, 'users/alice/appData/primary')));
 });
 
-test('share documents reject fields outside the explicit top-level allowlist', async () => {
-  await seedActiveOwner('alice');
-  const alice = env.authenticatedContext('alice').firestore();
-  await assertFails(setDoc(doc(alice, sharePath), {
-    ...shareData,
-    email: 'private@example.com',
-  }));
+test('legacy share documents containing vehicle or owner identifiers are not publicly readable', async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), sharePath), legacyShareData);
+  });
+  const visitor = env.unauthenticatedContext().firestore();
+  await assertFails(getDoc(doc(visitor, sharePath)));
 });
 
 test('a former owner cannot republish a vehicle after ownership changes', async () => {
@@ -127,7 +121,7 @@ test('a former owner cannot republish a vehicle after ownership changes', async 
   const alice = env.authenticatedContext('alice').firestore();
   const bob = env.authenticatedContext('bob').firestore();
   await assertFails(setDoc(doc(alice, sharePath), shareData));
-  await assertSucceeds(setDoc(doc(bob, sharePath), { ...shareData, ownerUid: 'bob' }));
+  await assertFails(setDoc(doc(bob, sharePath), shareData));
 });
 
 test('v2 owner bootstrap, vehicle facts, and private data follow separate access rules', async () => {

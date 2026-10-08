@@ -8,6 +8,10 @@ if (getApps().length === 0) initializeApp();
 const db = getFirestore();
 const TRANSFER_LIFETIME_MS = 24 * 60 * 60 * 1000;
 const CODE_PATTERN = /^[A-F0-9]{32}$/;
+const PUBLIC_EVENT_LIMIT = 500;
+const PUBLIC_CATEGORIES = new Set([
+  'Service', 'Reparation', 'Problem', 'Underhåll', 'Besiktning', 'Däck', 'Kostnad', 'Dokument', 'Annat',
+]);
 
 setGlobalOptions({ region: 'europe-north1', maxInstances: 3 });
 
@@ -32,6 +36,132 @@ function normalizeCode(value) {
 function codeHash(code) {
   return createHash('sha256').update(code, 'utf8').digest('hex');
 }
+
+function publicText(value, maxLength, label, required = false) {
+  if (typeof value !== 'string') {
+    if (required) throw new HttpsError('invalid-argument', `${label} saknas.`);
+    return '';
+  }
+  const result = value.trim().slice(0, maxLength);
+  if (required && !result) throw new HttpsError('invalid-argument', `${label} saknas.`);
+  return result;
+}
+
+function publicNumber(value, label, required = false) {
+  if (value == null && !required) return null;
+  const result = Number(value);
+  if (!Number.isFinite(result) || result < 0) {
+    throw new HttpsError('invalid-argument', `${label} är ogiltigt.`);
+  }
+  return result;
+}
+
+function sanitizePublicSnapshot(input) {
+  if (!input || typeof input !== 'object' || !input.vehicle || typeof input.vehicle !== 'object'
+    || !Array.isArray(input.events) || input.events.length > PUBLIC_EVENT_LIMIT) {
+    throw new HttpsError('invalid-argument', 'Delningsprofilen har ett ogiltigt format.');
+  }
+  const vehicle = {
+    name: publicText(input.vehicle.name, 80, 'Fordonsnamn', true),
+    type: publicText(input.vehicle.type, 40, 'Fordonstyp'),
+    make: publicText(input.vehicle.make, 60, 'Märke'),
+    model: publicText(input.vehicle.model, 60, 'Modell'),
+    year: publicText(input.vehicle.year, 4, 'Årsmodell'),
+    mileage: publicNumber(input.vehicle.mileage, 'Miltal', true),
+  };
+  const events = input.events.map(event => {
+    if (!event || typeof event !== 'object' || !PUBLIC_CATEGORIES.has(event.category)) {
+      throw new HttpsError('invalid-argument', 'En historikpost har ogiltig kategori.');
+    }
+    const date = publicText(event.date, 10, 'Datum', true);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new HttpsError('invalid-argument', 'En historikpost har ogiltigt datum.');
+    }
+    return {
+      category: event.category,
+      title: publicText(event.title, 160, 'Händelserubrik', true),
+      date,
+      mileage: publicNumber(event.mileage, 'Händelsens miltal'),
+      sourceType: ['owner_entry', 'receipt', 'document', 'workshop', 'imported'].includes(event.sourceType)
+        ? event.sourceType
+        : 'owner_entry',
+    };
+  });
+  return { schemaVersion: 2, vehicle, events, updatedAt: Timestamp.now() };
+}
+
+function activeOwner(memberSnapshot, uid) {
+  return memberSnapshot.exists
+    && memberSnapshot.data().uid === uid
+    && memberSnapshot.data().active === true
+    && memberSnapshot.data().role === 'owner';
+}
+
+export const publishPublicVehicle = onCall(async request => {
+  const uid = requireUid(request);
+  const vehicleId = requireVehicleId(request.data?.vehicleId);
+  const snapshot = sanitizePublicSnapshot(request.data?.snapshot);
+  const vehicleRef = db.doc(`vehicles/${vehicleId}`);
+  const memberRef = db.doc(`vehicles/${vehicleId}/members/${uid}`);
+  const mappingRef = db.doc(`users/${uid}/publicShareMappings/${vehicleId}`);
+  const legacyShareRef = db.doc(`publicVehicles/${vehicleId}`);
+
+  const token = await db.runTransaction(async transaction => {
+    const [vehicleSnapshot, memberSnapshot, mappingSnapshot] = await Promise.all([
+      transaction.get(vehicleRef), transaction.get(memberRef), transaction.get(mappingRef),
+    ]);
+    if (!vehicleSnapshot.exists || !activeOwner(memberSnapshot, uid)) {
+      throw new HttpsError('permission-denied', 'Bara en aktiv fordonsägare kan publicera profilen.');
+    }
+    const shareToken = mappingSnapshot.exists && typeof mappingSnapshot.data().token === 'string'
+      ? mappingSnapshot.data().token
+      : randomBytes(24).toString('base64url');
+    const publicShareRef = db.doc(`publicVehicles/${shareToken}`);
+    const [publicShareSnapshot, legacyShareSnapshot] = await Promise.all([
+      transaction.get(publicShareRef),
+      transaction.get(legacyShareRef),
+    ]);
+    transaction.set(mappingRef, { schemaVersion: 1, token: shareToken, vehicleId, ownerUid: uid });
+    transaction.set(publicShareRef, snapshot);
+    if (vehicleId !== shareToken && legacyShareSnapshot.exists) transaction.delete(legacyShareRef);
+    // If a stale/corrupt mapping points elsewhere, remove its old public snapshot too.
+    const priorToken = mappingSnapshot.data()?.token;
+    if (mappingSnapshot.exists && priorToken !== shareToken && typeof priorToken === 'string') {
+      transaction.delete(db.doc(`publicVehicles/${priorToken}`));
+    }
+    return shareToken;
+  });
+  return { shareToken: token };
+});
+
+export const revokePublicVehicleShare = onCall(async request => {
+  const uid = requireUid(request);
+  const vehicleId = requireVehicleId(request.data?.vehicleId);
+  const vehicleRef = db.doc(`vehicles/${vehicleId}`);
+  const memberRef = db.doc(`vehicles/${vehicleId}/members/${uid}`);
+  const mappingRef = db.doc(`users/${uid}/publicShareMappings/${vehicleId}`);
+  const legacyShareRef = db.doc(`publicVehicles/${vehicleId}`);
+
+  await db.runTransaction(async transaction => {
+    const [vehicleSnapshot, memberSnapshot, mappingSnapshot] = await Promise.all([
+      transaction.get(vehicleRef), transaction.get(memberRef), transaction.get(mappingRef),
+    ]);
+    if (!vehicleSnapshot.exists || !activeOwner(memberSnapshot, uid)) {
+      throw new HttpsError('permission-denied', 'Bara en aktiv fordonsägare kan återkalla profilen.');
+    }
+    const shareRef = mappingSnapshot.exists && typeof mappingSnapshot.data().token === 'string'
+      ? db.doc(`publicVehicles/${mappingSnapshot.data().token}`)
+      : null;
+    const shareSnapshot = shareRef ? await transaction.get(shareRef) : null;
+    const legacySnapshot = vehicleId === mappingSnapshot.data()?.token
+      ? null
+      : await transaction.get(legacyShareRef);
+    if (shareRef && shareSnapshot?.exists) transaction.delete(shareRef);
+    if (legacySnapshot?.exists) transaction.delete(legacyShareRef);
+    if (mappingSnapshot.exists) transaction.delete(mappingRef);
+  });
+  return { revoked: true };
+});
 
 export const createVehicleTransfer = onCall(async request => {
   const sellerUid = requireUid(request);
@@ -98,11 +228,13 @@ export const acceptVehicleTransfer = onCall(async request => {
     const buyerMigrationMarkerRef = db.doc(`users/${buyerUid}/migrationStatus/vehicleModelV2`);
     const buyerLegacyStateRef = db.doc(`users/${buyerUid}/appData/primary`);
     const publicVehicleRef = db.doc(`publicVehicles/${vehicleId}`);
+    const sellerShareMappingRef = db.doc(`users/${sellerUid}/publicShareMappings/${vehicleId}`);
     const activeHistoryQuery = db.collection(`vehicles/${vehicleId}/ownershipHistory`)
       .where('ownerUid', '==', sellerUid);
 
     const [vehicleSnapshot, sellerMemberSnapshot, buyerMemberSnapshot, sellerIndexSnapshot,
-      activeHistorySnapshot, buyerMigrationMarkerSnapshot, buyerLegacyStateSnapshot] = await Promise.all([
+      activeHistorySnapshot, buyerMigrationMarkerSnapshot, buyerLegacyStateSnapshot,
+      sellerShareMappingSnapshot] = await Promise.all([
       transaction.get(vehicleRef),
       transaction.get(sellerMemberRef),
       transaction.get(buyerMemberRef),
@@ -110,7 +242,14 @@ export const acceptVehicleTransfer = onCall(async request => {
       transaction.get(activeHistoryQuery),
       transaction.get(buyerMigrationMarkerRef),
       transaction.get(buyerLegacyStateRef),
+      transaction.get(sellerShareMappingRef),
     ]);
+
+    const sellerPublicShareRef = sellerShareMappingSnapshot.exists
+      && typeof sellerShareMappingSnapshot.data().token === 'string'
+      ? db.doc(`publicVehicles/${sellerShareMappingSnapshot.data().token}`)
+      : null;
+    if (sellerPublicShareRef) await transaction.get(sellerPublicShareRef);
 
     if (!vehicleSnapshot.exists
       || !sellerMemberSnapshot.exists
@@ -177,6 +316,8 @@ export const acceptVehicleTransfer = onCall(async request => {
     }
     // A seller's public snapshot must not stay live or be republished by the former owner.
     transaction.delete(publicVehicleRef);
+    if (sellerPublicShareRef) transaction.delete(sellerPublicShareRef);
+    if (sellerShareMappingSnapshot.exists) transaction.delete(sellerShareMappingRef);
 
     return { vehicleId, alreadyAccepted: false };
   });

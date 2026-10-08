@@ -27,7 +27,7 @@ npm install
 npm run test:rules
 ```
 
-Testerna verifierar ägarens delning, att en tidigare ägare inte kan återpublicera profilen, att en annan användare inte kan ta över delningen, att användare inte kan läsa varandras privata kontodata och att en publik delningslänk bara kan läsa ett enskilt dokument. Publika fordonsprofiler är avsiktligt läsbara för alla som har länken.
+Testerna verifierar att en publik delningslänk bara kan läsa ett enskilt, sanerat dokument. Slumptoken skapas och återkallas av callable Functions; klienter kan inte lista, skapa eller ändra publika profiler. Profilen tillåter bara fordonsnamn, typ, märke, modell, årsmodell, miltal samt valda händelsers kategori, rubrik, datum, miltal och källtyp. Registreringsnummer, ägar-ID, kostnad, verkstad, beskrivning och bilagor publiceras aldrig. Delningsadressen använder `?delning=<slumptoken>` och profilsidan sätter `noindex,nofollow`.
 
 ## Publicera Firestore-regler
 
@@ -42,7 +42,9 @@ Publicering ersätter projektets nuvarande Firestore-regler med `firestore.rules
 
 ## Ägarbyte med överföringskod
 
-Ägarbyte använder Firebase Functions (Node.js 22) och kräver att Firebase-projektet har Blaze-plan/billing aktiverat för att Functions ska kunna deployas. Koden skapas av `createVehicleTransfer`, är 128 bitar slumpmässig, gäller i 24 timmar och lagras bara som SHA-256-hash. Köparen måste vara inloggad med Google och löser in den via `acceptVehicleTransfer`. Funktionen uppdaterar medlemskap, kontots fordonsindex, ägarhistorik och stänger den gamla publika profilen i en Firestore-transaktion. Tidigare ägares privata anteckningar och originalbilagor följer inte med.
+Ägarbyte använder Firebase Functions (Node.js 22) och kräver att Firebase-projektet har Blaze-plan/billing aktiverat för att Functions ska kunna deployas. Koden skapas av `createVehicleTransfer`, är 128 bitar slumpmässig, gäller i 24 timmar och lagras bara som SHA-256-hash. Köparen måste vara inloggad med Google och löser in den via `acceptVehicleTransfer`. Funktionen uppdaterar medlemskap, kontots fordonsindex, ägarhistorik och återkallar säljarens tokenbaserade publika profil i en Firestore-transaktion. Tidigare ägares privata anteckningar och originalbilagor följer inte med.
+
+Publik delning hanteras av `publishPublicVehicle` och `revokePublicVehicleShare`. De skapar respektive återkallar en slumpmässig 192-bitars token och skriver endast den tillåtna publika fältlistan. Tokenmappningen är privat under säljarens konto. Ägarbyte tar bort både mappning och profil. Gamla länkar med `?fordon=<fordons-id>` fungerar inte längre efter att reglerna publicerats; ägaren behöver publicera profilen igen och dela den nya länken/QR-koden.
 
 Installera Functions-beroenden och deploya först efter att ändringen granskats:
 

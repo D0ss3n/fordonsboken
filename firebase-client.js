@@ -303,13 +303,14 @@ if (!configured) {
       });
       return { migrated: true, counts: plan.counts, vehicleCount: plan.vehicleCount };
     },
-    async publishVehicle(vehicleId, payload) {
-      const ref = firestoreSdk.doc(db, 'publicVehicles', vehicleId);
-      await firestoreSdk.setDoc(ref, payload);
+    async publishVehicle(vehicleId, snapshot) {
+      const call = functionsSdk.httpsCallable(functions, 'publishPublicVehicle');
+      const response = await call({ vehicleId, snapshot });
+      return response.data.shareToken;
     },
     async removePublishedVehicle(vehicleId) {
-      const ref = firestoreSdk.doc(db, 'publicVehicles', vehicleId);
-      await firestoreSdk.deleteDoc(ref);
+      const call = functionsSdk.httpsCallable(functions, 'revokePublicVehicleShare');
+      return (await call({ vehicleId })).data;
     },
     async loadPublishedVehicle(vehicleId) {
       const ref = firestoreSdk.doc(db, 'publicVehicles', vehicleId);

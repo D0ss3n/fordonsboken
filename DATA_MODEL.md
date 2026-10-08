@@ -55,7 +55,11 @@ Bilagor sparas privat per konto som standard. En bilagereferens i historiken är
 
 ### Publika delningar
 
-`publicShares/{shareId}` använder ett slumpmässigt delningstoken, inte fordonets ID eller registreringsnummer. Dokumentet innehåller endast en explicit tillåten fältlista. Delning är avstängd som standard; token kan återkallas eller roteras. Publika dokument innehåller aldrig `ownerUid`, privata anteckningar, påminnelser eller automatiskt bifogade kvitton.
+Den aktuella publika länken använder `publicVehicles/{token}` med ett kryptografiskt slumpmässigt 192-bitars token, inte fordonets ID eller registreringsnummer. `users/{uid}/publicShareMappings/{vehicleId}` binder ägarens fordon till token och är endast åtkomlig för betrodda callable Functions. `publishPublicVehicle` kontrollerar aktivt ägarskap och skriver en server-sanerad allowlist; `revokePublicVehicleShare` tar bort tokenprofilen och mappningen. Ägarbyte tar också bort säljarens profil och mappning.
+
+Profilen tillåter enbart fordonsnamn, typ, märke, modell, årsmodell och miltal, samt de valda historikhändelsernas kategori, rubrik, datum, miltal och källtyp. Registreringsnummer, VIN, ägar-ID, kostnad, verkstad, beskrivningar, interna ID:n och bilagor publiceras inte. Firestore tillåter endast enskilda `get`-läsningar av v2-profiler och nekar listning och klientskrivningar. Profilvyn använder `noindex,nofollow`; detta är en sökmotorsignal, medan token och serverns allowlist utgör åtkomst-/dataskyddet.
+
+Delning är avstängd som standard; ägaren kan återkalla token. Gamla länkar med fordons-ID (`?fordon=...`) ska inte längre visa profilen efter reglerna är publicerade. Delning måste då publiceras på nytt för att få en tokenlänk.
 
 ### Överföringar
 
