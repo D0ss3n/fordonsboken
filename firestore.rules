@@ -69,7 +69,9 @@ service cloud.firestore {
         && request.resource.data.vehicle is map
         && request.resource.data.vehicle.keys().hasOnly(['id', 'name', 'type', 'make', 'model', 'year', 'registration', 'vin', 'mileage']);
       allow update: if isActiveOwner()
-        && resource.data.createdByUid == request.resource.data.createdByUid
+        && ((('createdByUid' in resource.data) && resource.data.createdByUid == request.resource.data.createdByUid)
+          || (!('createdByUid' in resource.data) && !('createdByUid' in request.resource.data))
+          || (!('createdByUid' in resource.data) && request.resource.data.createdByUid == request.auth.uid))
         && request.resource.data.keys().hasOnly(['schemaVersion', 'createdByUid', 'vehicle'])
         && request.resource.data.vehicle is map
         && request.resource.data.vehicle.keys().hasOnly(['id', 'name', 'type', 'make', 'model', 'year', 'registration', 'vin', 'mileage']);

@@ -13,6 +13,11 @@ function forVehicle(items, vehicleId) {
   return (Array.isArray(items) ? items : []).filter(item => item?.vehicle === vehicleId);
 }
 
+function creatorUid(item, currentUid) {
+  if (Object.hasOwn(item || {}, '_createdByUid')) return item._createdByUid || null;
+  return currentUid;
+}
+
 /** Build an idempotent, non-destructive Firestore v2 copy from the legacy app state. */
 export function createVehicleModelV2Plan(uid, state) {
   const ownerUid = documentId(uid, 'konto');
@@ -41,7 +46,11 @@ export function createVehicleModelV2Plan(uid, state) {
     plan.push({
       path: `vehicles/${vehicleId}`,
       kind: 'vehicle',
-      data: { schemaVersion: 2, createdByUid: oldVehicle._createdByUid || ownerUid, vehicle },
+      data: {
+        schemaVersion: 2,
+        ...(creatorUid(oldVehicle, ownerUid) ? { createdByUid: creatorUid(oldVehicle, ownerUid) } : {}),
+        vehicle,
+      },
     });
     const member = oldVehicle._membershipData || {};
     const ownershipHistoryId = member.ownershipHistoryId || `legacy-${ownerUid}`;
@@ -82,7 +91,7 @@ export function createVehicleModelV2Plan(uid, state) {
           mileage: number(event.mileage),
           // V1 cannot prove a claimed source; import it as user-entered.
           sourceType: 'owner_entry',
-          createdByUid: event._createdByUid || ownerUid,
+          ...(creatorUid(event, ownerUid) ? { createdByUid: creatorUid(event, ownerUid) } : {}),
         },
       });
       const {
@@ -133,7 +142,7 @@ export function createVehicleModelV2Plan(uid, state) {
               date: text(item.date),
               mileage: number(item.mileage),
               status: text(item.status),
-              createdByUid: item._createdByUid || ownerUid,
+              ...(creatorUid(item, ownerUid) ? { createdByUid: creatorUid(item, ownerUid) } : {}),
             },
           });
         }

@@ -223,6 +223,28 @@ if (!configured) {
     configured: true,
     signIn: () => authSdk.signInWithPopup(auth, provider),
     signOut: () => authSdk.signOut(auth),
+    async exportAccountData() {
+      if (!auth.currentUser) throw new Error('Logga in för att exportera kontot.');
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(`https://europe-north1-${firebaseConfig.projectId}.cloudfunctions.net/exportAccountData`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error(await response.text() || 'Kunde inte skapa kontoexporten.');
+      return response.blob();
+    },
+    async deleteAccountData() {
+      const user = auth.currentUser;
+      if (!user) throw new Error('Logga in för att radera kontot.');
+      await authSdk.reauthenticateWithPopup(user, provider);
+      const call = functionsSdk.httpsCallable(functions, 'deleteAccountData');
+      const response = await call({});
+      localStorage.removeItem('fordonsboken.v1');
+      localStorage.removeItem(`fordonsboken.v1.${user.uid}`);
+      indexedDB.deleteDatabase('fordonsmappen-attachments');
+      await authSdk.signOut(auth);
+      return response.data;
+    },
     async uploadAttachment(uid, eventId, file, attachmentId) {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const path = `users/${uid}/events/${eventId}/${attachmentId}-${safeName}`;
