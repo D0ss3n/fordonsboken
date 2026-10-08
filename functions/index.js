@@ -557,6 +557,7 @@ export const purgeExpiredVehicleTransfers = onSchedule({
   schedule: 'every 6 hours',
   timeZone: 'UTC',
   timeoutSeconds: 540,
+  region: 'europe-west1',
 }, async () => {
   const now = Timestamp.now();
   const dueQuery = db.collection('transferRequests')
