@@ -2,6 +2,8 @@
 
 Allt om ditt fordon. På ett ställe.
 
+En preliminär inventering av personuppgifter, ändamål, lagring och identifierade GDPR-luckor finns i [`GDPR-DATAINVENTERING.md`](GDPR-DATAINVENTERING.md). Dokumentet är internt arbetsunderlag och behöver kompletteras av tjänstens personuppgiftsansvarige innan en integritetspolicy publiceras.
+
 En responsiv webbapp på svenska som samlar fordon, historik, problem, kostnader, påminnelser och delning.
 
 ## Webbplats
