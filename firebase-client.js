@@ -306,6 +306,18 @@ if (!configured) {
         schemaVersion: 2,
       };
     },
+    async getTermsAcceptance(uid) {
+      if (auth.currentUser?.uid !== uid) throw new Error('Du kan bara läsa villkorsgodkännandet för det inloggade kontot.');
+      const snapshot = await firestoreSdk.getDoc(docRef(`users/${uid}/appData/termsAcceptance`));
+      return snapshot.exists() ? snapshot.data() : null;
+    },
+    async recordTermsAcceptance(uid, version) {
+      if (auth.currentUser?.uid !== uid) throw new Error('Du kan bara spara villkorsgodkännandet för det inloggade kontot.');
+      await firestoreSdk.setDoc(docRef(`users/${uid}/appData/termsAcceptance`), {
+        version,
+        acceptedAt: firestoreSdk.serverTimestamp(),
+      });
+    },
     async migrateVehicleModelV2(uid, state) {
       if (auth.currentUser?.uid !== uid) throw new Error('Du kan bara migrera det inloggade kontots data.');
       const markerRef = firestoreSdk.doc(db, 'users', uid, 'migrationStatus', 'vehicleModelV2');
