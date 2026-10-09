@@ -149,6 +149,47 @@ if (!configured) {
       && (parts[2] === 'events' || parts[2] === 'problems')
       && data?.createdByUid === uid;
   };
+
+  async function deleteLocalAttachments(uid, knownAttachmentIds = []) {
+    if (!globalThis.indexedDB) return false;
+    const knownIds = new Set(knownAttachmentIds.filter(value => typeof value === 'string'));
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('fordonsmappen-attachments', 1);
+      request.onupgradeneeded = () => request.result.createObjectStore('files', { keyPath: 'id' });
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const localDb = request.result;
+        if (!localDb.objectStoreNames.contains('files')) {
+          localDb.close();
+          resolve(true);
+          return;
+        }
+        const transaction = localDb.transaction('files', 'readwrite');
+        const store = transaction.objectStore('files');
+        const cursorRequest = store.openCursor();
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result;
+          if (!cursor) return;
+          const record = cursor.value;
+          if (record.ownerUid === uid || knownIds.has(record.id)) cursor.delete();
+          cursor.continue();
+        };
+        cursorRequest.onerror = () => transaction.abort();
+        transaction.oncomplete = () => {
+          localDb.close();
+          resolve(true);
+        };
+        transaction.onerror = () => {
+          localDb.close();
+          reject(transaction.error);
+        };
+        transaction.onabort = () => {
+          localDb.close();
+          reject(transaction.error || new Error('Kunde inte rensa lokala bilagor.'));
+        };
+      };
+    });
+  }
   const isPrivateRecord = (path, uid) => path.startsWith(`users/${uid}/privateVehicles/`);
   const cachePlan = (cache, writes) => writes.forEach(write => cache.set(write.path, write.data));
   const accountPreferences = state => Object.fromEntries(
@@ -233,7 +274,7 @@ if (!configured) {
       if (!response.ok) throw new Error(await response.text() || 'Kunde inte skapa kontoexporten.');
       return response.blob();
     },
-    async deleteAccountData() {
+    async deleteAccountData(localAttachmentIds = []) {
       const user = auth.currentUser;
       if (!user) throw new Error('Logga in för att radera kontot.');
       await authSdk.reauthenticateWithPopup(user, provider);
@@ -241,9 +282,9 @@ if (!configured) {
       const response = await call({});
       localStorage.removeItem('fordonsboken.v1');
       localStorage.removeItem(`fordonsboken.v1.${user.uid}`);
-      indexedDB.deleteDatabase('fordonsmappen-attachments');
+      const localAttachmentsDeleted = await deleteLocalAttachments(user.uid, localAttachmentIds).catch(() => false);
       await authSdk.signOut(auth);
-      return response.data;
+      return { ...response.data, localAttachmentsDeleted };
     },
     async uploadAttachment(uid, eventId, file, attachmentId) {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
