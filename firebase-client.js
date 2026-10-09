@@ -296,7 +296,7 @@ if (!configured) {
     async downloadAttachment(path) {
       const url = await storageSdk.getDownloadURL(storageSdk.ref(storage, path));
       const response = await fetch(url);
-      if (!response.ok) throw new Error('Kunde inte hämta den bifogade filen.');
+      if (!response.ok) throw new Error(`storage/download-http-${response.status}`);
       return response.blob();
     },
     async deleteAttachment(path) {
