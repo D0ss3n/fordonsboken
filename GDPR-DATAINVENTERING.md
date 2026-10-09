@@ -43,9 +43,31 @@ Grundaren har bekräftat tjänstevalen: konto/fordonsbok/bilagor/ägarbyte ska t
 | Skydda tjänsten och utreda missbruk/säkerhetsincidenter | Berättigat intresse, om en dokumenterad intresseavvägning visar att behandlingen är nödvändig och inte väger tyngre än användarens rättigheter | Vilka loggar appen själv faktiskt samlar in, åtkomst, 30-dagarsgallring och undantag vid incident |
 | Ta emot och hantera begäran om registerutdrag, rättelse eller radering | Rättslig förpliktelse i den utsträckning GDPR kräver att begäran hanteras | Praktisk kontaktväg, identitetskontroll och svarsrutin |
 
+### Dokumenterad preliminär bedömning av rättslig grund
+
+**Status:** arbetsunderlag upprättat 2026-10-09 utifrån kod, policy och grundarens tidigare verksamhetsbeslut. Det är inte en juridisk garanti. William behöver bekräfta att beskrivningen stämmer med den faktiska driften innan detta behandlingsregister betraktas som fastställt. Ingen separat användarvillkorsfil hittades i repot; därför behöver William också bekräfta hur avtalet med användaren uppstår och att informationen i eventuella villkor täcker tjänstens funktioner.
+
+| Behandling | Preliminärt val | Avgränsning och skäl |
+|---|---|---|
+| Konto/inloggning och användarens privata fordonsbok, valda bilagor och funktioner | Avtal, GDPR artikel 6.1 b, villkorat | Gäller endast om ett avtal faktiskt uppstår när tjänsten används och endast uppgifter som objektivt behövs för funktioner som användaren själv väljer. Repo-granskningen hittade ingen separat användarvillkorsfil. Extra uppgifter i fritext eller kvitton om andra personer blir inte automatiskt nödvändiga för avtalet med kontoinnehavaren. Samla därför inte in sådana uppgifter om de inte behövs. |
+| Publicering av fordonsprofil via länk/QR | Samtycke, artikel 6.1 a | Håll publiceringsvalet separat och frivilligt, visa vilka fält delas och gör det lika enkelt att återkalla som att aktivera. Återkallning ska stoppa åtkomsten till den publika profilen. |
+| Begränsad säkerhets- och felsökningsloggning | Berättigat intresse, artikel 6.1 f, preliminärt | Det konkreta intresset är att upptäcka missbruk, skydda konton/tjänst och felsöka driftfel. Loggning är nödvändig i begränsad omfattning för att utreda fel och säkerhetshändelser. Användare kan rimligen förvänta sig sådan skyddande loggning; påverkan begränsas genom att inte logga fordonsinnehåll, begränsa åtkomst och gallra tjänststyrda loggar inom 30 dagar. Slutsatsen gäller endast dessa begränsade loggar och förutsätter att faktisk konfiguration och åtkomst följer beskrivningen. Registrerade kan invända; begäran ska då bedömas individuellt enligt artikel 21. |
+| Hantera begäran om registrerades rättigheter | Rättslig förpliktelse, artikel 6.1 c | Begränsa uppgifterna till vad som behövs för att verifiera och besvara begäran samt dokumentera vad lagen kräver. |
+| Bevara fordonsfakta/historik som kan kopplas till tidigare ägare efter kontoradering | Ingen generell grund fastställd | En kvarvarande medlems intresse eller avtal gör inte automatiskt all information om en tidigare ägare nödvändig. Bevara endast fält som behövs för den kvarvarande medlemmens fordonsbok och först efter att ändamål, nödvändighet, information och rättslig grund har dokumenterats. Annars radera eller anonymisera på ett oåterkalleligt sätt. |
+
+### Intresseavvägning: appens begränsade säkerhetsloggar
+
+**1. Berättigat intresse.** Fordonsmappen behöver kunna upptäcka och utreda missbruk, skydda konton och tjänstens tillgänglighet samt felsöka fel som påverkar användare. Säkerhet och förebyggande av missbruk kan utgöra berättigade intressen.
+
+**2. Nödvändighet och minimering.** Kodgranskningen hittade ingen Analytics-, Crashlytics- eller egen aktivitetsloggning av fordonsinnehåll. Serverkoden loggar ett konto-UID och felmeddelande när kontoexport misslyckas, samt endast antal gallrade överföringsdokument vid schemalagd gallring. Klientkod skriver ett felobjekt för misslyckad Google-redirect till webbläsarens utvecklarkonsol; ingen egen uppladdning av detta fel till en loggtjänst hittades. Google/Firebase kan dessutom behandla tekniska uppgifter för Auth och Functions som del av sina tjänster. En mindre integritetskänslig lösning är att undvika fordonsinnehåll och råa begärandedata i appens loggar; felmeddelanden bör inte innehålla formulärtext, bilagor eller andra innehållsuppgifter.
+
+**3. Balans och skydd.** Loggarna är begränsade och har ett skydds-/driftändamål som användaren kan förvänta sig. UID och felmeddelande kan ändå identifiera ett konto eller avslöja information om ett fel. Därför ska loggåtkomst begränsas till driftansvarig och behöriga leverantörer, loggarnas innehåll hållas till minsta nödvändiga och appstyrda loggar gallras inom 30 dagar, med dokumenterat undantag för en aktiv incident eller ett rättsligt anspråk. På dessa villkor bedöms intresset preliminärt väga tyngre än det begränsade integritetsintrånget.
+
+**Villkor före fastställande:** kontrollera Cloud Logging-buckets, retention, IAM/åtkomst och auditloggar i Google Cloud; kontrollera Auth-/Functions-loggarnas faktiska kategorier och lagring; kontrollera GitHubs besöks-/Actions-loggar och tillämpliga lagringsvillkor. Leverantörsloggar omfattas inte av 30-dagarsmålet för appstyrda loggar förrän de faktiska leverantörsvillkoren och inställningarna har verifierats. Om loggarna innehåller mer data eller sparas längre än beskrivet ska bedömningen och integritetspolicyn uppdateras. Separat kontrollera att användarvillkor eller annan tydlig avtalsprocess faktiskt gäller innan artikel 6.1 b anges som grund för kontot och fordonsboken.
+
 ### Kvar att verifiera före bred publicering
 
-1. Dokumentera den rättsliga grunden per ändamål i tabellen och göra en intresseavvägning för säkerhetsloggar om den grunden behålls.
+1. William bekräftar den preliminära rättsliga-grundstabellen/intresseavvägningen ovan och genomför villkorskontrollerna där; bedömningen blir inte fastställd förrän den faktiska loggkonfigurationen är verifierad.
 2. Lägga in den godkända uppmaningen om andra personers uppgifter i appen och policyn.
 3. Fastställa vilka tekniska säkerhetsloggar appen själv samlar in och om de kan gallras inom 30 dagar.
 4. 18-årsgränsen är beslutad och anges i policyn. Ingen åldersruta eller teknisk åldersverifiering används; bedöm om detta är tillräckligt för den valda målgruppen.
