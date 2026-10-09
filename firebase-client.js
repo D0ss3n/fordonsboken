@@ -294,10 +294,7 @@ if (!configured) {
       return { path: uploaded.ref.fullPath, name: file.name, type: file.type };
     },
     async downloadAttachment(path) {
-      const url = await storageSdk.getDownloadURL(storageSdk.ref(storage, path));
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`storage/download-http-${response.status}`);
-      return response.blob();
+      return storageSdk.getDownloadURL(storageSdk.ref(storage, path));
     },
     async deleteAttachment(path) {
       await storageSdk.deleteObject(storageSdk.ref(storage, path));
