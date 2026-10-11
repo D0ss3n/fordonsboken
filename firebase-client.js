@@ -220,6 +220,9 @@ if (!configured) {
 
     const bootstrapKinds = new Set(['vehicle', 'member', 'vehicle-index', 'ownership-history']);
     const writes = plan.writes.filter(write => {
+      // Membership is established by vehicle creation or trusted transfer flows. A normal
+      // save must not rewrite an existing membership document that Firestore treats as immutable.
+      if (!migration && write.kind === 'member' && cache.has(write.path)) return false;
       // Ownership history is managed by trusted transfer/migration flows. A normal save
       // must not replace a real transfer record with the planner's legacy defaults.
       if (!migration && write.kind === 'ownership-history' && cache.has(write.path)) return false;
