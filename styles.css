@@ -43,3 +43,4 @@
 .terms-acceptance{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;margin:16px 0}.terms-acceptance input{margin:3px 0 0;accent-color:var(--navy);flex:0 0 auto}.terms-acceptance span{line-height:1.5}.terms-acceptance a{color:var(--navy);text-underline-offset:3px}
 
 @media(max-width:720px){.vehicle-card{min-height:0;align-items:start}.vehicle-card>div:first-child{min-width:0}.vehicle-card .badge{display:inline-flex;max-width:100%;white-space:normal;line-height:1.35}.vehicle-card .mileage-box{position:static;display:grid;gap:4px;margin-top:20px}}
+.share-vehicle-field{display:grid;gap:6px;max-width:360px;margin:14px 0}.share-vehicle-field label{font-size:12px;font-weight:700;color:#68736e}.share-vehicle-field select{width:100%;border:1px solid var(--line);border-radius:9px;padding:11px;background:#fff;color:var(--ink);font:inherit}
