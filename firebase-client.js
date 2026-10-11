@@ -25,6 +25,18 @@ if (!configured) {
   provider.setCustomParameters({ prompt: 'select_account' });
   const vehicleModelCache = new Map();
   const docRef = path => firestoreSdk.doc(db, ...path.split('/'));
+  const runSyncStep = async (step, operation, details = null) => {
+    try { return await operation(); }
+    catch (error) {
+      console.error('Firestore sync failed at ' + step, details, error);
+      const wrapped = new Error(error?.message || String(error));
+      wrapped.firebaseCode = error?.code || 'unknown';
+      wrapped.code = `${wrapped.firebaseCode} · ${step}`;
+      wrapped.syncStep = step;
+      wrapped.cause = error;
+      throw wrapped;
+    }
+  };
   const collectionRef = path => firestoreSdk.collection(db, ...path.split('/'));
   const sameData = (left, right) => {
     const canonical = value => Array.isArray(value)
@@ -237,7 +249,8 @@ if (!configured) {
         const chunk = ordered.slice(offset, offset + 400);
         const batch = firestoreSdk.writeBatch(db);
         chunk.forEach(write => batch.set(docRef(write.path), write.data));
-        await batch.commit();
+        const kinds = [...new Set(chunk.map(write => write.kind))].join(', ');
+        await runSyncStep('fordonsskrivning: ' + kinds, () => batch.commit(), chunk.map(({ kind, path }) => ({ kind, path })));
         cachePlan(cache, chunk);
       }
     }
@@ -254,7 +267,7 @@ if (!configured) {
         const chunk = paths.slice(offset, offset + 400);
         const batch = firestoreSdk.writeBatch(db);
         chunk.forEach(path => batch.delete(docRef(path)));
-        await batch.commit();
+        await runSyncStep('borttagning av fordonsposter', () => batch.commit(), chunk);
         chunk.forEach(path => cache.delete(path));
       }
     }
@@ -416,12 +429,12 @@ if (!configured) {
       }
       // Keep the original v1 document intact as a rollback snapshot; evolving
       // account-level settings are stored beside it while v2 owns vehicle data.
-      await firestoreSdk.setDoc(preferencesRef, {
+      await runSyncStep('kontoinställningar', () => firestoreSdk.setDoc(preferencesRef, {
         state: accountPreferences(state),
         schemaVersion: 2,
         updatedAt: firestoreSdk.serverTimestamp(),
-      });
-      await persistVehicleModelPlan(uid, state);
+      }));
+      await runSyncStep('fordonsdata', () => persistVehicleModelPlan(uid, state));
     },
   };
 
