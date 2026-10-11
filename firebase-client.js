@@ -208,6 +208,9 @@ if (!configured) {
 
     const bootstrapKinds = new Set(['vehicle', 'member', 'vehicle-index', 'ownership-history']);
     const writes = plan.writes.filter(write => {
+      // Ownership history is managed by trusted transfer/migration flows. A normal save
+      // must not replace a real transfer record with the planner's legacy defaults.
+      if (!migration && write.kind === 'ownership-history' && cache.has(write.path)) return false;
       if (write.kind === 'vehicle-event' || write.kind === 'vehicle-problem') {
         // Earlier owners' entries remain visible, but cannot be rewritten by a later owner.
         if (write.data.createdByUid !== uid) return false;
