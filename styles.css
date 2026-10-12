@@ -97,3 +97,6 @@
 .date-picker-choice{min-height:42px;border:0;border-radius:9px;background:#fff;color:var(--ink);font:inherit;cursor:pointer}
 .date-picker-choice[aria-pressed=true]{background:var(--navy);color:#fff;font-weight:700}
 .date-picker-year-range{margin:0 0 8px;text-align:center;color:var(--muted);font-size:13px}
+
+.date-picker-choice-grid.is-years{grid-template-columns:repeat(5,minmax(0,1fr));max-height:min(42vh,320px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:2px}
+.date-picker-choice-grid.is-years .date-picker-choice{min-height:38px}
