@@ -282,6 +282,9 @@ if (!configured) {
   window.FordonsmappenFirebase = {
     configured: true,
     signIn: () => authSdk.signInWithPopup(auth, provider),
+    signInWithEmail: (email, password) => authSdk.signInWithEmailAndPassword(auth, email, password),
+    createAccountWithEmail: (email, password) => authSdk.createUserWithEmailAndPassword(auth, email, password),
+    sendPasswordReset: email => authSdk.sendPasswordResetEmail(auth, email),
     signOut: () => authSdk.signOut(auth),
     async exportAccountData() {
       if (!auth.currentUser) throw new Error('Logga in för att exportera kontot.');
