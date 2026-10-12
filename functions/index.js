@@ -316,7 +316,7 @@ export const deleteAccountData = onCall(async request => {
     .map(doc => [doc.ref.path, doc.ref]));
   for (const ref of transferRefs.values()) await ref.delete();
 
-  await bucket.deleteFiles({ prefix: `users/${uid}/events/` });
+  await bucket.deleteFiles({ prefix: `users/${uid}/` });
   await db.recursiveDelete(db.doc(`users/${uid}`));
   await adminAuth.deleteUser(uid);
   return { deleted: true, removedVehicleCount: removedVehicleCount.length };

@@ -29,7 +29,8 @@
       <p>Beroende på hur du använder tjänsten kan det handla om:</p>
       <ul>
         <li>E-postadress och kontoidentifierare när du skapar konto eller loggar in med e-postadress och lösenord. Lösenordet behandlas av Firebase Authentication för att skapa och verifiera inloggningen; det sparas inte i Fordonsmappens fordonsdata. Om du begär återställning skickar Firebase ett återställningsmejl till adressen du anger.</li>
-        <li>Google-kontots namn, e-postadress, profilbild och kontoidentifierare när du väljer att logga in med Google.</li>
+
+        <li>Google-kontots namn, e-postadress och profilbild när du väljer att logga in med Google. Du kan också själv ange ett visningsnamn och ladda upp en profilbild i Fordonsmappen. Namnet kopplas till ditt Firebase Authentication-konto och bilden lagras i Firebase Storage under ditt konto.</li>
         <li>Fordonsuppgifter som fordonsnamn, fordonstyp, märke, modell, årsmodell, registreringsnummer, chassinummer och miltal.</li>
         <li>Fordonsbokens händelser, problem, påminnelser, kostnader, verkstadsuppgifter och fritext som du själv lägger in.</li>
         <li>Filer och uppgifter i kvitton eller andra bilagor som du väljer att ladda upp.</li>
@@ -59,7 +60,7 @@
     <section class="policy-section">
       <h2>Hur länge sparas uppgifterna?</h2>
       <ul>
-        <li>Konto, privata fordonsuppgifter, bilagor och registrerat godkännande av användarvillkoren sparas medan kontot är aktivt. När du begär kontoradering tas uppgifterna bort från de aktiva Firebase-tjänsterna. Firebase Authentication behåller autentiseringsuppgifter tills kontot raderas; enligt Googles information tas de därefter bort från aktiva system och säkerhetskopior inom 180 dagar. Auth-relaterade IP-loggar sparas i några veckor. Dagliga säkerhetskopior av Firestore-databasen behålls i upp till 84 dagar per säkerhetskopia. De omfattar inte Firebase Auth-konton eller filer i Storage. En Firestore-säkerhetskopia som innehåller uppgifter kan finnas kvar efter att de raderats från den aktiva databasen, tills säkerhetskopian löper ut. Säkerhetskopior används för återställning och är inte tillgängliga som vanlig kontodata.</li>
+        <li>Konto, profiluppgifter, privata fordonsuppgifter, bilagor och registrerat godkännande av användarvillkoren sparas medan kontot är aktivt. När du begär kontoradering tas uppgifterna bort från de aktiva Firebase-tjänsterna. Firebase Authentication behåller autentiseringsuppgifter tills kontot raderas; enligt Googles information tas de därefter bort från aktiva system och säkerhetskopior inom 180 dagar. Auth-relaterade IP-loggar sparas i några veckor. Dagliga säkerhetskopior av Firestore-databasen behålls i upp till 84 dagar per säkerhetskopia. De omfattar inte Firebase Auth-konton eller filer i Storage. En Firestore-säkerhetskopia som innehåller uppgifter kan finnas kvar efter att de raderats från den aktiva databasen, tills säkerhetskopian löper ut. Säkerhetskopior används för återställning och är inte tillgängliga som vanlig kontodata.</li>
         <li>Raderade eller ersatta filer i Firebase Storage behålls i Googles Soft delete-skydd i 7 dagar. Under den tiden kan de återställas av en behörig administratör; därefter tas de bort permanent.</li>
         <li>Överföringskoden upphör efter 24 timmar. Överföringsdokumentet ska tas bort inom 30 dagar efter användning eller utgång.</li>
         <li>En publik profil finns bara så länge delning är aktiverad och tas bort när delningen återkallas.</li>

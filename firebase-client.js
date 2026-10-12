@@ -285,6 +285,17 @@ if (!configured) {
     signInWithEmail: (email, password) => authSdk.signInWithEmailAndPassword(auth, email, password),
     createAccountWithEmail: (email, password) => authSdk.createUserWithEmailAndPassword(auth, email, password),
     sendPasswordReset: email => authSdk.sendPasswordResetEmail(auth, email),
+    updateAccountProfile: (displayName, photoURL) => {
+      if (!auth.currentUser) throw new Error('Logga in för att ändra profilen.');
+      return authSdk.updateProfile(auth.currentUser, { displayName, photoURL });
+    },
+    async uploadProfilePhoto(file) {
+      const user = auth.currentUser;
+      if (!user) throw new Error('Logga in för att ändra profilbilden.');
+      const target = storageSdk.ref(storage, `users/${user.uid}/profile/avatar`);
+      const uploaded = await storageSdk.uploadBytes(target, file, { contentType: file.type });
+      return storageSdk.getDownloadURL(uploaded.ref);
+    },
     signOut: () => authSdk.signOut(auth),
     async exportAccountData() {
       if (!auth.currentUser) throw new Error('Logga in för att exportera kontot.');
