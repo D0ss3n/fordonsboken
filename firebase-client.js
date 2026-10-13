@@ -466,7 +466,7 @@ if (!configured) {
 
   authSdk.onAuthStateChanged(auth, user => {
     signal('fordonsmappen-auth', {
-      user: user ? { uid: user.uid, displayName: user.displayName, email: user.email, photoURL: user.photoURL } : null,
+      user: user ? { uid: user.uid, displayName: user.displayName, email: user.email, photoURL: user.photoURL, emailVerified: user.emailVerified, providerData: user.providerData.map(({ providerId }) => ({ providerId })) } : null,
     });
   });
   signal('fordonsmappen-firebase-ready', { configured: true });
