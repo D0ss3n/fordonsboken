@@ -6,13 +6,20 @@ import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { setGlobalOptions } from 'firebase-functions/v2';
+import { onInit } from 'firebase-functions/v2/core';
 import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 
-if (getApps().length === 0) initializeApp();
-const db = getFirestore();
-const adminAuth = getAuth();
-const bucket = getStorage().bucket();
+let db;
+let adminAuth;
+let bucket;
+
+onInit(() => {
+  if (getApps().length === 0) initializeApp();
+  db = getFirestore();
+  adminAuth = getAuth();
+  bucket = getStorage().bucket();
+});
 const TRANSFER_LIFETIME_MS = 24 * 60 * 60 * 1000;
 const TRANSFER_RETENTION_MS = 29 * 24 * 60 * 60 * 1000;
 const LEGACY_TRANSFER_RETENTION_MS = (28 * 24 + 12) * 60 * 60 * 1000;
