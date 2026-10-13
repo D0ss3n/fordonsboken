@@ -285,6 +285,10 @@ if (!configured) {
     signInWithEmail: (email, password) => authSdk.signInWithEmailAndPassword(auth, email, password),
     createAccountWithEmail: (email, password) => authSdk.createUserWithEmailAndPassword(auth, email, password),
     sendPasswordReset: email => authSdk.sendPasswordResetEmail(auth, email, { url: new URL('./', window.location.href).href }),
+    sendEmailVerification: () => {
+      if (!auth.currentUser) throw new Error('Logga in för att verifiera e-postadressen.');
+      return authSdk.sendEmailVerification(auth.currentUser, { url: new URL('./', window.location.href).href });
+    },
     updateAccountProfile: (displayName, photoURL) => {
       if (!auth.currentUser) throw new Error('Logga in för att ändra profilen.');
       return authSdk.updateProfile(auth.currentUser, { displayName, photoURL });
