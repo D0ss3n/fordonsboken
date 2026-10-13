@@ -1,12 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isVerifiedUser() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
     match /users/{userId}/appData/{documentId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isVerifiedUser() && request.auth.uid == userId;
     }
 
     match /users/{userId}/migrationStatus/{migrationId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isVerifiedUser() && request.auth.uid == userId;
     }
 
     // Public-share ownership mappings are managed only by trusted callable functions.
@@ -27,8 +30,8 @@ service cloud.firestore {
         return /databases/$(database)/documents/vehicles/$(vehicleId)/members/$(userId);
       }
 
-      allow get, list: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null
+      allow get, list: if isVerifiedUser() && request.auth.uid == userId;
+      allow create: if isVerifiedUser()
         && request.auth.uid == userId
         && request.resource.data.keys().hasOnly(['schemaVersion', 'vehicleId', 'role', 'active'])
         && request.resource.data.vehicleId == vehicleId
@@ -36,14 +39,14 @@ service cloud.firestore {
         && request.resource.data.active == true
         && getAfter(vehiclePath()).data.createdByUid == userId
         && getAfter(memberPath()).data.uid == userId;
-      allow update: if request.auth != null
+      allow update: if isVerifiedUser()
         && request.auth.uid == userId
         && request.resource.data == resource.data;
       allow delete: if false;
     }
 
     match /users/{userId}/privateVehicles/{vehicleId}/{collection}/{documentId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isVerifiedUser() && request.auth.uid == userId;
     }
 
     match /vehicles/{vehicleId} {
@@ -51,7 +54,7 @@ service cloud.firestore {
         return /databases/$(database)/documents/vehicles/$(vehicleId)/members/$(request.auth.uid);
       }
       function isActiveMember() {
-        return request.auth != null
+        return isVerifiedUser()
           && existsAfter(memberPath())
           && getAfter(memberPath()).data.uid == request.auth.uid
           && getAfter(memberPath()).data.active == true;
@@ -62,7 +65,7 @@ service cloud.firestore {
 
       allow get: if isActiveMember();
       allow list: if false;
-      allow create: if request.auth != null
+      allow create: if isVerifiedUser()
         && request.resource.data.keys().hasOnly(['schemaVersion', 'createdByUid', 'vehicle'])
         && request.resource.data.schemaVersion == 2
         && request.resource.data.createdByUid == request.auth.uid
@@ -82,9 +85,9 @@ service cloud.firestore {
           return /databases/$(database)/documents/vehicles/$(vehicleId);
         }
 
-        allow get: if request.auth != null && request.auth.uid == memberUid;
+        allow get: if isVerifiedUser() && request.auth.uid == memberUid;
         allow list: if false;
-        allow create: if request.auth != null
+        allow create: if isVerifiedUser()
           && request.auth.uid == memberUid
           && request.resource.data.keys().hasOnly(['schemaVersion', 'uid', 'role', 'active', 'startedAt', 'ownershipHistoryId'])
           && request.resource.data.schemaVersion == 2
@@ -92,7 +95,7 @@ service cloud.firestore {
           && request.resource.data.role == 'owner'
           && request.resource.data.active == true
           && getAfter(parentVehiclePath()).data.createdByUid == memberUid;
-        allow update: if request.auth != null
+        allow update: if isVerifiedUser()
           && request.auth.uid == memberUid
           && request.resource.data == resource.data;
         allow delete: if false;
@@ -103,14 +106,14 @@ service cloud.firestore {
           return /databases/$(database)/documents/vehicles/$(vehicleId)/members/$(request.auth.uid);
         }
         function isActiveOwner() {
-          return request.auth != null
+          return isVerifiedUser()
             && existsAfter(memberPath())
             && getAfter(memberPath()).data.uid == request.auth.uid
             && getAfter(memberPath()).data.active == true
             && getAfter(memberPath()).data.role == 'owner';
         }
 
-        allow get, list: if request.auth != null
+        allow get, list: if isVerifiedUser()
           && existsAfter(memberPath())
           && getAfter(memberPath()).data.active == true;
         allow create: if isActiveOwner()
@@ -125,13 +128,13 @@ service cloud.firestore {
           return /databases/$(database)/documents/vehicles/$(vehicleId)/members/$(request.auth.uid);
         }
         function isActiveOwner() {
-          return request.auth != null
+          return isVerifiedUser()
             && existsAfter(memberPath())
             && getAfter(memberPath()).data.active == true
             && getAfter(memberPath()).data.role == 'owner';
         }
 
-        allow get, list: if request.auth != null
+        allow get, list: if isVerifiedUser()
           && existsAfter(memberPath())
           && getAfter(memberPath()).data.active == true;
         allow create: if isActiveOwner()
@@ -154,10 +157,10 @@ service cloud.firestore {
           return /databases/$(database)/documents/vehicles/$(vehicleId)/members/$(request.auth.uid);
         }
 
-        allow get, list: if request.auth != null
+        allow get, list: if isVerifiedUser()
           && existsAfter(memberPath())
           && getAfter(memberPath()).data.active == true;
-        allow create: if request.auth != null
+        allow create: if isVerifiedUser()
           && existsAfter(memberPath())
           && getAfter(memberPath()).data.active == true
           && getAfter(memberPath()).data.role == 'owner'
@@ -172,24 +175,24 @@ service cloud.firestore {
         function memberPath() {
           return /databases/$(database)/documents/vehicles/$(vehicleId)/members/$(request.auth.uid);
         }
-        allow get, list: if request.auth != null
+        allow get, list: if isVerifiedUser()
           && existsAfter(memberPath())
           && getAfter(memberPath()).data.active == true;
-        allow create: if request.auth != null
+        allow create: if isVerifiedUser()
           && existsAfter(memberPath())
           && getAfter(memberPath()).data.active == true
           && getAfter(memberPath()).data.role == 'owner'
           && request.resource.data.keys().hasOnly(['schemaVersion', 'id', 'title', 'date', 'mileage', 'status', 'createdByUid'])
           && request.resource.data.id == problemId
           && request.resource.data.createdByUid == request.auth.uid;
-        allow update: if request.auth != null
+        allow update: if isVerifiedUser()
           && existsAfter(memberPath())
           && getAfter(memberPath()).data.active == true
           && getAfter(memberPath()).data.role == 'owner'
           && resource.data.createdByUid == request.auth.uid
           && request.resource.data.keys().hasOnly(['schemaVersion', 'id', 'title', 'date', 'mileage', 'status', 'createdByUid'])
           && request.resource.data.createdByUid == resource.data.createdByUid;
-        allow delete: if request.auth != null
+        allow delete: if isVerifiedUser()
           && existsAfter(memberPath())
           && getAfter(memberPath()).data.active == true
           && getAfter(memberPath()).data.role == 'owner'

@@ -24,8 +24,11 @@ const PUBLIC_CATEGORIES = new Set([
 
 setGlobalOptions({ region: 'europe-north1', maxInstances: 3 });
 
-function requireUid(request) {
+function requireUid(request, { allowUnverified = false } = {}) {
   if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Logga in för att överföra fordon.');
+  if (!allowUnverified && request.auth.token.email_verified !== true) {
+    throw new HttpsError('failed-precondition', 'Verifiera din e-postadress via mejlet innan du använder Fordonsmappen.');
+  }
   return request.auth.uid;
 }
 
@@ -248,7 +251,7 @@ export const exportAccountData = onRequest({
 });
 
 export const deleteAccountData = onCall(async request => {
-  const uid = requireUid(request);
+  const uid = requireUid(request, { allowUnverified: true });
   const authTime = Number(request.auth.token.auth_time || 0) * 1000;
   if (!authTime || Date.now() - authTime > 5 * 60 * 1000) {
     throw new HttpsError('failed-precondition', 'Logga in igen innan kontot raderas.');

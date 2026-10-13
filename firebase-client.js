@@ -285,6 +285,16 @@ if (!configured) {
     signInWithEmail: (email, password) => authSdk.signInWithEmailAndPassword(auth, email, password),
     createAccountWithEmail: (email, password) => authSdk.createUserWithEmailAndPassword(auth, email, password),
     sendPasswordReset: email => authSdk.sendPasswordResetEmail(auth, email, { url: new URL('./', window.location.href).href }),
+    async refreshCurrentUser() {
+      const user = auth.currentUser;
+      if (!user) return null;
+      await authSdk.reload(user);
+      await user.getIdToken(true);
+      const currentUser = auth.currentUser;
+      const payload = currentUser ? { uid: currentUser.uid, displayName: currentUser.displayName, email: currentUser.email, photoURL: currentUser.photoURL, emailVerified: currentUser.emailVerified, providerData: currentUser.providerData.map(({ providerId }) => ({ providerId })) } : null;
+      signal('fordonsmappen-auth', { user: payload });
+      return payload;
+    },
     sendEmailVerification: () => {
       if (!auth.currentUser) throw new Error('Logga in för att verifiera e-postadressen.');
       return authSdk.sendEmailVerification(auth.currentUser, { url: new URL('./', window.location.href).href });
@@ -464,7 +474,16 @@ if (!configured) {
     signal('fordonsmappen-auth-error', { code: error.code });
   });
 
-  authSdk.onAuthStateChanged(auth, user => {
+  authSdk.onAuthStateChanged(auth, async user => {
+    if (user) {
+      try {
+        await authSdk.reload(user);
+        await user.getIdToken(true);
+      } catch (error) {
+        console.warn('Kunde inte uppdatera autentiseringsstatusen', error);
+      }
+    }
+    if (auth.currentUser?.uid !== user?.uid) return;
     signal('fordonsmappen-auth', {
       user: user ? { uid: user.uid, displayName: user.displayName, email: user.email, photoURL: user.photoURL, emailVerified: user.emailVerified, providerData: user.providerData.map(({ providerId }) => ({ providerId })) } : null,
     });
