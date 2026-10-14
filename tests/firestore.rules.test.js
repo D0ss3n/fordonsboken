@@ -53,6 +53,10 @@ async function seedActiveOwner(uid, id = vehicleId) {
   });
 }
 
+function verifiedUser(uid) {
+  return env.authenticatedContext(uid, { email_verified: true }).firestore();
+}
+
 after(async () => {
   await env?.cleanup();
 });
@@ -75,7 +79,7 @@ test('clients cannot publish, edit, or revoke public profiles directly', async (
   await env.withSecurityRulesDisabled(async context => {
     await setDoc(doc(context.firestore(), sharePath), shareData);
   });
-  const alice = env.authenticatedContext('alice').firestore();
+  const alice = verifiedUser('alice');
   const ref = doc(alice, sharePath);
   await assertFails(setDoc(doc(alice, 'publicVehicles/another-token'), shareData));
   await assertFails(updateDoc(ref, { updatedAt: Date.now() }));
@@ -90,10 +94,21 @@ test('private account data remains inaccessible to a different account', async (
     });
   });
 
-  const alice = env.authenticatedContext('alice').firestore();
-  const bob = env.authenticatedContext('bob').firestore();
+  const alice = verifiedUser('alice');
+  const bob = verifiedUser('bob');
   await assertSucceeds(getDoc(doc(alice, 'users/alice/appData/primary')));
   await assertFails(getDoc(doc(bob, 'users/alice/appData/primary')));
+});
+
+test('unverified account cannot read its own private account data', async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'users/alice/appData/primary'), {
+      state: { vehicles: [{ id: 'private-car' }] },
+    });
+  });
+
+  const unverifiedAlice = env.authenticatedContext('alice', { email_verified: false }).firestore();
+  await assertFails(getDoc(doc(unverifiedAlice, 'users/alice/appData/primary')));
 });
 
 test('legacy share documents containing vehicle or owner identifiers are not publicly readable', async () => {
@@ -118,14 +133,14 @@ test('a former owner cannot republish a vehicle after ownership changes', async 
     });
   });
 
-  const alice = env.authenticatedContext('alice').firestore();
-  const bob = env.authenticatedContext('bob').firestore();
+  const alice = verifiedUser('alice');
+  const bob = verifiedUser('bob');
   await assertFails(setDoc(doc(alice, sharePath), shareData));
   await assertFails(setDoc(doc(bob, sharePath), shareData));
 });
 
 test('v2 owner bootstrap, vehicle facts, and private data follow separate access rules', async () => {
-  const alice = env.authenticatedContext('alice').firestore();
+  const alice = verifiedUser('alice');
   const batch = writeBatch(alice);
   batch.set(doc(alice, `vehicles/${vehicleId}`), {
     schemaVersion: 2,
@@ -155,7 +170,7 @@ test('v2 owner bootstrap, vehicle facts, and private data follow separate access
     schemaVersion: 2, eventId: 'service-1', cost: 3200, description: 'Privat anteckning',
   }));
 
-  const bob = env.authenticatedContext('bob').firestore();
+  const bob = verifiedUser('bob');
   await assertFails(getDoc(doc(bob, `vehicles/${vehicleId}`)));
   await assertFails(getDoc(doc(bob, `users/alice/privateVehicles/${vehicleId}/eventDetails/service-1`)));
   await assertFails(setDoc(doc(bob, `vehicles/${vehicleId}/members/bob`), {
@@ -180,7 +195,7 @@ test('a future owner cannot rewrite a previous owner\'s v2 history event', async
     });
   });
 
-  const bob = env.authenticatedContext('bob').firestore();
+  const bob = verifiedUser('bob');
   await assertSucceeds(getDoc(doc(bob, `vehicles/${vehicleId}/events/service-1`)));
   await assertFails(updateDoc(doc(bob, `vehicles/${vehicleId}/events/service-1`), { title: 'Ändrad historik' }));
   await assertFails(deleteDoc(doc(bob, `vehicles/${vehicleId}/events/service-1`)));
