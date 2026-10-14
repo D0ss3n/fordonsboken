@@ -215,7 +215,11 @@ export const exportAccountData = onRequest({
   try {
     const user = await adminAuth.getUser(uid);
     const documents = await collectUserDocuments(uid);
-    const [files] = await bucket.getFiles({ prefix: `users/${uid}/events/` });
+    const [[eventFiles], [profileFiles]] = await Promise.all([
+      bucket.getFiles({ prefix: `users/${uid}/events/` }),
+      bucket.getFiles({ prefix: `users/${uid}/profile/` }),
+    ]);
+    const files = [...eventFiles, ...profileFiles];
     response.set('Content-Type', 'application/gzip');
     response.set('Content-Disposition', 'attachment; filename="fordonsmappen-kontoexport.json.gz"');
     const gzip = createGzip();
