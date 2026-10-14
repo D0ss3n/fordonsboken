@@ -261,6 +261,79 @@ export const exportAccountData = onRequest({
   }
 });
 
+export const syncGoogleProfilePhoto = onCall(async request => {
+  const uid = requireUid(request);
+  const user = await adminAuth.getUser(uid);
+  const googlePhotoURL = user.providerData.find(provider => provider.providerId === 'google.com')?.photoURL
+    || user.photoURL;
+  if (!googlePhotoURL) return { photoURL: null };
+
+  let photoUrl;
+  try {
+    photoUrl = new URL(googlePhotoURL);
+  } catch {
+    throw new HttpsError('failed-precondition', 'Google-profilbildens adress är ogiltig.');
+  }
+  const host = photoUrl.hostname.toLowerCase();
+  if (photoUrl.protocol !== 'https:'
+    || !(host === 'googleusercontent.com' || host.endsWith('.googleusercontent.com'))) {
+    return { photoURL: user.photoURL || null };
+  }
+
+  const path = `users/${uid}/profile/avatar`;
+  const profileFile = bucket.file(path);
+  const [exists] = await profileFile.exists();
+  if (exists) {
+    const [metadata] = await profileFile.getMetadata();
+    const token = metadata.metadata?.firebaseStorageDownloadTokens;
+    if (token) {
+      return { photoURL: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${encodeURIComponent(token)}` };
+    }
+  }
+
+  let image;
+  try {
+    const result = await fetch(photoUrl, { redirect: 'error', signal: AbortSignal.timeout(15000) });
+    if (!result.ok) throw new Error(`HTTP ${result.status}`);
+    const contentType = (result.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(contentType)) {
+      throw new Error('Unsupported image type');
+    }
+    const contentLength = Number(result.headers.get('content-length') || 0);
+    if (contentLength >= 5 * 1024 * 1024) throw new Error('Image exceeds size limit');
+    const reader = result.body?.getReader();
+    if (!reader) throw new Error('Image response has no body');
+    const chunks = [];
+    let byteLength = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      byteLength += value.byteLength;
+      if (byteLength >= 5 * 1024 * 1024) {
+        await reader.cancel();
+        throw new Error('Image exceeds size limit');
+      }
+      chunks.push(Buffer.from(value));
+    }
+    image = Buffer.concat(chunks, byteLength);
+    if (!image.length) throw new Error('Image is empty');
+
+    const token = randomBytes(16).toString('hex');
+    await profileFile.save(image, {
+      resumable: false,
+      metadata: {
+        contentType,
+        metadata: { firebaseStorageDownloadTokens: token, source: 'google-profile-photo' },
+      },
+    });
+    const photoURL = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
+    return { photoURL };
+  } catch (error) {
+    console.error('Google-profilbildet kunde inte sparas i Storage', { uid, message: error?.message });
+    throw new HttpsError('unavailable', 'Profilbilden kunde inte kopieras till kontots fillagring.');
+  }
+});
+
 export const deleteAccountData = onCall(async request => {
   const uid = requireUid(request, { allowUnverified: true });
   const authTime = Number(request.auth.token.auth_time || 0) * 1000;

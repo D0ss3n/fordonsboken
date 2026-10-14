@@ -310,6 +310,15 @@ if (!configured) {
       const uploaded = await storageSdk.uploadBytes(target, file, { contentType: file.type });
       return storageSdk.getDownloadURL(uploaded.ref);
     },
+    async syncGoogleProfilePhoto() {
+      const user = auth.currentUser;
+      if (!user) throw new Error('Logga in för att spara profilbilden.');
+      const call = functionsSdk.httpsCallable(functions, 'syncGoogleProfilePhoto');
+      const response = await call({});
+      const photoURL = response.data?.photoURL || null;
+      if (photoURL && user.photoURL !== photoURL) await authSdk.updateProfile(user, { photoURL });
+      return photoURL;
+    },
     signOut: () => authSdk.signOut(auth),
     async exportAccountData() {
       if (!auth.currentUser) throw new Error('Logga in för att exportera kontot.');
