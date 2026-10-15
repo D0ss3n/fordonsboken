@@ -323,7 +323,9 @@ if (!configured) {
     async exportAccountData() {
       if (!auth.currentUser) throw new Error('Logga in för att exportera kontot.');
       const token = await auth.currentUser.getIdToken();
-      const response = await fetch(`https://europe-north1-${firebaseConfig.projectId}.cloudfunctions.net/exportAccountData`, {
+      const endpoint = new URL(`https://europe-north1-${firebaseConfig.projectId}.cloudfunctions.net/exportAccountData`);
+      endpoint.searchParams.set('_export', `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      const response = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });

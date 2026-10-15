@@ -192,7 +192,9 @@ export const exportAccountData = onRequest({
   timeoutSeconds: 540,
   memory: '1GiB',
 }, async (request, response) => {
-  response.set('Cache-Control', 'no-store, private');
+  response.set('Cache-Control', 'no-store, no-cache, private, max-age=0');
+  response.set('Pragma', 'no-cache');
+  response.set('Expires', '0');
   if (request.method !== 'GET') {
     response.set('Allow', 'GET').status(405).send('Method not allowed.');
     return;
@@ -220,6 +222,8 @@ export const exportAccountData = onRequest({
       bucket.getFiles({ prefix: `users/${uid}/profile/` }),
     ]);
     const files = [...eventFiles, ...profileFiles];
+    const exportedAt = new Date().toISOString();
+    response.set('X-Exported-At', exportedAt);
     response.set('Content-Type', 'application/gzip');
     response.set('Content-Disposition', 'attachment; filename="fordonsmappen-kontoexport.json.gz"');
     const gzip = createGzip();
@@ -229,7 +233,7 @@ export const exportAccountData = onRequest({
     });
     await write(JSON.stringify({
       schemaVersion: 1,
-      exportedAt: new Date().toISOString(),
+      exportedAt,
       account: {
         uid,
         email: user.email || null,
@@ -254,6 +258,11 @@ export const exportAccountData = onRequest({
     await write(']}');
     gzip.end();
     await finished(gzip);
+    console.info('Account export completed', {
+      exportedAt,
+      documentCount: documents.length,
+      fileCount: files.length,
+    });
   } catch (error) {
     console.error('Kunde inte skapa kontoexport', { uid, message: error?.message });
     if (!response.headersSent) response.status(500).send('Kunde inte skapa exporten. Försök igen senare.');
