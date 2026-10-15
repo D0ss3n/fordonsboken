@@ -266,18 +266,23 @@ export const syncGoogleProfilePhoto = onCall(async request => {
   const user = await adminAuth.getUser(uid);
   const googlePhotoURL = user.providerData.find(provider => provider.providerId === 'google.com')?.photoURL
     || user.photoURL;
-  if (!googlePhotoURL) return { photoURL: null };
+  if (!googlePhotoURL) {
+    console.info('Profile photo sync result', { result: 'skipped', reason: 'missing-photo-url' });
+    return { photoURL: null, result: 'skipped' };
+  }
 
   let photoUrl;
   try {
     photoUrl = new URL(googlePhotoURL);
   } catch {
+    console.warn('Profile photo sync result', { result: 'skipped', reason: 'invalid-photo-url' });
     throw new HttpsError('failed-precondition', 'Google-profilbildens adress är ogiltig.');
   }
   const host = photoUrl.hostname.toLowerCase();
   if (photoUrl.protocol !== 'https:'
     || !(host === 'googleusercontent.com' || host.endsWith('.googleusercontent.com'))) {
-    return { photoURL: user.photoURL || null };
+    console.info('Profile photo sync result', { result: 'skipped', reason: 'unsupported-photo-host' });
+    return { photoURL: user.photoURL || null, result: 'skipped' };
   }
 
   const path = `users/${uid}/profile/avatar`;
@@ -287,13 +292,29 @@ export const syncGoogleProfilePhoto = onCall(async request => {
     const [metadata] = await profileFile.getMetadata();
     const token = metadata.metadata?.firebaseStorageDownloadTokens;
     if (token) {
-      return { photoURL: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${encodeURIComponent(token)}` };
+      console.info('Profile photo sync result', { result: 'already-stored' });
+      return { photoURL: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${encodeURIComponent(token)}`, result: 'already-stored' };
     }
   }
 
   let image;
   try {
-    const result = await fetch(photoUrl, { redirect: 'error', signal: AbortSignal.timeout(15000) });
+    const signal = AbortSignal.timeout(15000);
+    let imageResponse;
+    for (let redirects = 0; redirects <= 3; redirects += 1) {
+      imageResponse = await fetch(photoUrl, { redirect: 'manual', signal });
+      if (![301, 302, 303, 307, 308].includes(imageResponse.status)) break;
+      const location = imageResponse.headers.get('location');
+      if (!location || redirects === 3) throw new Error('Too many image redirects');
+      const nextUrl = new URL(location, photoUrl);
+      const nextHost = nextUrl.hostname.toLowerCase();
+      if (nextUrl.protocol !== 'https:'
+        || !(nextHost === 'googleusercontent.com' || nextHost.endsWith('.googleusercontent.com'))) {
+        throw new Error('Image redirect host is not allowed');
+      }
+      photoUrl = nextUrl;
+    }
+    const result = imageResponse;
     if (!result.ok) throw new Error(`HTTP ${result.status}`);
     const contentType = (result.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(contentType)) {
@@ -327,9 +348,10 @@ export const syncGoogleProfilePhoto = onCall(async request => {
       },
     });
     const photoURL = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
-    return { photoURL };
+    console.info('Profile photo sync result', { result: 'stored', contentType, byteLength: image.length });
+    return { photoURL, result: 'stored' };
   } catch (error) {
-    console.error('Google-profilbildet kunde inte sparas i Storage', { uid, message: error?.message });
+    console.error('Google-profilbildet kunde inte sparas i Storage', { message: error?.message });
     throw new HttpsError('unavailable', 'Profilbilden kunde inte kopieras till kontots fillagring.');
   }
 });
