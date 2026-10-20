@@ -15,7 +15,7 @@
     <header class="policy-heading">
       <span class="eyebrow">Fordonsmappen</span>
       <h1>Integritetspolicy</h1>
-      <p>Senast uppdaterad 14 oktober 2026</p>
+      <p>Senast uppdaterad 20 oktober 2026</p>
     </header>
 
     <section class="policy-section">
@@ -74,6 +74,13 @@
         <li>Om ett fordon har en annan aktiv medlem kan grundläggande fordonsfakta och den historik som behövs för den kvarvarande medlemmens fordonsbok finnas kvar efter att ett konto raderats. Den tidigare medlemmens kontoidentifierare, privata anteckningar och bilagor ska då tas bort. Fordonsuppgifter kan fortfarande gå att koppla till en person och är inte automatiskt anonyma. Om det saknas en giltig rättslig grund för uppgifter som kan kopplas till den tidigare medlemmen ska de uppgifterna raderas.</li>
       </ul>
       <p>Uppgifter som bara finns lokalt i webbläsaren kan ligga kvar på enheten tills webbläsarens webbplatsdata rensas. Firestore-backuperna och Storage-skyddet ovan är konfigurerade i Google Cloud för Fordonsmappen. Leverantörernas övriga driftloggar och säkerhetskopior följer respektive leverantörs villkor och inställningar.</p>
+    </section>
+
+    <section class="policy-section" id="radera-konto">
+      <h2>Radera konto</h2>
+      <p>Du kan radera ditt inloggade konto i appen under <strong>Inställningar → Hantera dina data → Radera mitt konto</strong>. Du behöver bekräfta åtgärden genom att logga in igen. Raderingen går inte att ångra.</p>
+      <p>När raderingen lyckas tas kontot bort från Firebase Authentication, användarens uppgifter i Firestore och användarens filer i Firebase Storage. Fordon utan någon annan aktiv medlem tas också bort. Om andra aktiva medlemmar finns kvar kan fordonsboken finnas kvar för dem; din medlemskoppling och attribution tas då bort. En del fordonsuppgifter kan därför finnas kvar enligt villkoren ovan.</p>
+      <p>Appen tar också bort sin kontocache och försöker rensa lokala bilagor i webbläsaren. Uppgifter som bara finns lokalt, eller bilagor som webbläsaren inte kunde rensa, kan behöva tas bort genom att rensa Fordonsmappens webbplatsdata på enheten. Säkerhetskopior kan behålla raderade uppgifter tills de löper ut enligt lagringstiderna ovan.</p>
     </section>
 
     <section class="policy-section">

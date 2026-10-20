@@ -112,7 +112,7 @@ Datacenterregion visar inte ensamt var all support, telemetri, säkerhetskopieri
 4. **Åtgärdad 2026-10-15:** `firebase.json` inkluderar `storage.rules`. Firestore- och Storage-reglerna publicerades till `fordonsmappen-af27a`; båda kompilerade och Firebase CLI rapporterade `Deploy complete`. De lokala reglerna kräver verifierad e-post för åtkomst till molndata och filer. Kontrollera reglerna igen efter framtida ändringar och hantera Firebase download-URL:er som bärare av åtkomst.
 5. Bestäm och dokumentera controlleridentitet/kontakt, rättslig grund, retention, Google/GitHub DPA och eventuella tredjelandsöverföringar.
 6. Granska kvitto-/bilagelänkar: Firebase download-URL:er kan fungera som bärare av åtkomst och ska inte exponeras publikt av misstag.
-7. Lägg en begriplig integritetspolicy och rättighetskontakt i appen innan den öppnas för bred publik. Tjänsten drivs för närvarande av grundaren som privatperson och är planerad att vara gratis först; om ett företag senare tar över och betalning införs ska personuppgiftsansvarig, ändamål/rättsliga grunder, kontakt och information uppdateras innan förändringen träder i kraft.
+7. **Policytext tillagd 2026-10-20:** den publika integritetspolicyn beskriver nu hur kontot raderas, vilka uppgifter som tas bort och kvarvarande lokala-/backupdata. Slutgranska att alla retentionstider, leverantörsuppgifter och rättsliga grunder stämmer före bred publicering. Tjänsten drivs för närvarande av grundaren som privatperson och är planerad att vara gratis först; om ett företag senare tar över och betalning införs ska personuppgiftsansvarig, ändamål/rättsliga grunder, kontakt och information uppdateras innan förändringen träder i kraft.
 
 ## Källor
 
