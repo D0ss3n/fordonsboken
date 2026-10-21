@@ -114,6 +114,25 @@ Datacenterregion visar inte ensamt var all support, telemetri, säkerhetskopieri
 6. Granska kvitto-/bilagelänkar: Firebase download-URL:er kan fungera som bärare av åtkomst och ska inte exponeras publikt av misstag.
 7. **Policytext tillagd 2026-10-20:** den publika integritetspolicyn beskriver nu hur kontot raderas, vilka uppgifter som tas bort och kvarvarande lokala-/backupdata. Slutgranska att alla retentionstider, leverantörsuppgifter och rättsliga grunder stämmer före bred publicering. Tjänsten drivs för närvarande av grundaren som privatperson och är planerad att vara gratis först; om ett företag senare tar över och betalning införs ska personuppgiftsansvarig, ändamål/rättsliga grunder, kontakt och information uppdateras innan förändringen träder i kraft.
 
+## Cloud Functions runtime-konton
+
+**Kontrollerat 2026-10-21:** Cloud Run visade `Default compute service account` för `deleteAccountData` (`europe-north1`) och `purgeExpiredVehicleTransfers` (`europe-west1`). IAM-vyn visade Compute Engine-standardkontot med rollen `Editor`. Koden initierar Firebase Admin SDK med Application Default Credentials och hade tidigare ingen explicit runtime-identitet. Funktionerna går därför via ett serverkonto som behöver databehörigheter; Firestore-reglerna begränsar inte Admin SDK-anrop.
+
+Källkodens behörighetsbehov:
+
+| Runtime-konto | Kodens behov | Föreslagen begränsning |
+|---|---|---|
+| `fordonsmappen-functions@fordonsmappen-af27a.iam.gserviceaccount.com` | Övriga funktioner läser/skriver Firestore; `exportAccountData` och `syncGoogleProfilePhoto` hämtar Auth-användare; `deleteAccountData` hämtar, återkallar sessioner och raderar Auth-användare. Export/synk/radering listar, läser, skapar respektive tar bort Storage-objekt. | `roles/datastore.user` för Firestore-data; egen Firebase Auth-roll med `firebaseauth.users.get`, `firebaseauth.users.update`, `firebaseauth.users.delete`; egen Storage-roll med `storage.objects.list`, `get`, `create`, `delete`, helst endast på Firebase-bucketen. Datastore-rollen ger åtkomst till data i databasen i stort, inte bara berörda samlingar. |
+| `fordonsmappen-transfer-cleanup@fordonsmappen-af27a.iam.gserviceaccount.com` | `purgeExpiredVehicleTransfers` frågar Firestore efter gallringsmogna överföringar och raderar dokumenten. Ingen Auth- eller Storage-användning i funktionen. | Egen Firestore-roll med bara de verifierade läs-/fråge-/raderingsbehörigheterna, om stödda för projektet; annars `roles/datastore.user`, som fortfarande ger bred databasåtkomst. |
+
+**Genomfört 2026-10-21:** två separata runtime-konton skapades. Appkontot fick den anpassade Firebase Auth-rollen samt `Cloud Datastore User`. Gallringskontot fick `Cloud Datastore User`. Appkontot fick `Storage Object Admin` på Firebase Storage-bucketen `fordonsmappen-af27a.firebasestorage.app`, inte på hela projektet.
+
+`Cloud Datastore User` medger läsning och skrivning av Firestore-data i databasen som helhet; det begränsar inte åtkomst till enskilda samlingar. Gallringsfunktionen använder enligt koden bara `transferRequests`, men IAM-rollen är bredare än så. Storage-rollen ger full kontroll över objekt i Firebase-bucketen. De här rollerna är ändå betydligt mer begränsade än projektrollen `Editor`.
+
+**Deploy och kontroll 2026-10-21:** `functions/index.js` anger appkontot som global runtime-identitet och gallringskontot som uttryckligt undantag för den schemalagda funktionen. Firebase CLI:s standardupptäcktstid på 10 sekunder räckte inte för att analysera kodbasen; deployen slutfördes med `FUNCTIONS_DISCOVERY_TIMEOUT=60`. Cloud Run-konsolen visade att `deleteAccountData` körs som `Fordonsmappen Functions Runtime` och `purgeExpiredVehicleTransfers` i `europe-west1` som `Fordonsmappen Transfer Cleanup`. Cloud Run-tjänstelistan visade endast gallringsfunktionen i `europe-west1`; Scheduler-jobbet finns där. `firebase functions:list` rapporterade samtidigt en äldre gallringspost i `europe-north1`, men Firebase CLI:s borttagning av den posten misslyckades eftersom Cloud Scheduler API svarar att `europe-north1` inte är en giltig Scheduler-plats. Följ upp den kvarvarande CLI-posten separat; den syntes inte som en Cloud Run-tjänst.
+
+Återstår att funktionstesta kontoexport, profilsynk, kontoradering, överföring och gallring med testdata. Ta inte bort Compute-standardkontots `Editor` förrän funktionerna körs med de nya identiteterna och verifieringen är godkänd.
+
 ## Källor
 
 - [Dataskyddsförordningen, särskilt artiklarna 5, 6, 13, 15–20 och 30 – EUR-Lex](https://eur-lex.europa.eu/eli/reg/2016/679/oj?locale=sv)

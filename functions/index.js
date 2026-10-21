@@ -29,7 +29,14 @@ const PUBLIC_CATEGORIES = new Set([
   'Service', 'Reparation', 'Problem', 'Underhåll', 'Besiktning', 'Däck', 'Kostnad', 'Dokument', 'Annat',
 ]);
 
-setGlobalOptions({ region: 'europe-north1', maxInstances: 3 });
+const FUNCTIONS_RUNTIME_SERVICE_ACCOUNT = 'fordonsmappen-functions@fordonsmappen-af27a.iam.gserviceaccount.com';
+const TRANSFER_CLEANUP_SERVICE_ACCOUNT = 'fordonsmappen-transfer-cleanup@fordonsmappen-af27a.iam.gserviceaccount.com';
+
+setGlobalOptions({
+  region: 'europe-north1',
+  maxInstances: 3,
+  serviceAccount: FUNCTIONS_RUNTIME_SERVICE_ACCOUNT,
+});
 
 function requireUid(request, { allowUnverified = false } = {}) {
   if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Logga in för att överföra fordon.');
@@ -676,6 +683,7 @@ export const purgeExpiredVehicleTransfers = onSchedule({
   timeZone: 'UTC',
   timeoutSeconds: 540,
   region: 'europe-west1',
+  serviceAccount: TRANSFER_CLEANUP_SERVICE_ACCOUNT,
 }, async () => {
   const now = Timestamp.now();
   const dueQuery = db.collection('transferRequests')
