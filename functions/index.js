@@ -416,7 +416,18 @@ export const deleteAccountData = onCall(async request => {
       vehicleRef.collection('eventCorrections').where('createdByUid', '==', uid).get(),
     ]);
     const updates = [
-      ...[...events.docs, ...problems.docs].map(doc => ({ ref: doc.ref, data: { createdByUid: FieldValue.delete() } })),
+      ...events.docs.map(doc => ({
+        ref: doc.ref,
+        data: {
+          createdByUid: FieldValue.delete(),
+          // Titles are free text; retain only the controlled category as a neutral label.
+          title: doc.data().category,
+        },
+      })),
+      ...problems.docs.map(doc => ({
+        ref: doc.ref,
+        data: { createdByUid: FieldValue.delete(), title: 'Tidigare notering' },
+      })),
       ...ownership.docs.map(doc => ({ ref: doc.ref, delete: true })),
       ...corrections.docs.map(doc => ({ ref: doc.ref, delete: true })),
       { ref: vehicleRef.collection('members').doc(uid), delete: true },
