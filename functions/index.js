@@ -82,6 +82,19 @@ function publicNumber(value, label, required = false) {
   return result;
 }
 
+function publicEventKey(event) {
+  const mileage = event?.mileage == null ? null : Number(event.mileage);
+  return JSON.stringify([
+    typeof event?.category === 'string' ? event.category.trim() : '',
+    typeof event?.title === 'string' ? event.title.trim().slice(0, 160) : '',
+    typeof event?.date === 'string' ? event.date.trim().slice(0, 10) : '',
+    Number.isFinite(mileage) && mileage >= 0 ? mileage : null,
+    ['owner_entry', 'receipt', 'document', 'workshop', 'imported'].includes(event?.sourceType)
+      ? event.sourceType
+      : 'owner_entry',
+  ]);
+}
+
 function sanitizePublicSnapshot(input) {
   if (!input || typeof input !== 'object' || !input.vehicle || typeof input.vehicle !== 'object'
     || !Array.isArray(input.events) || input.events.length > PUBLIC_EVENT_LIMIT) {
@@ -409,12 +422,14 @@ export const deleteAccountData = onCall(async request => {
       continue;
     }
 
-    const [events, problems, ownership, corrections] = await Promise.all([
+    const [events, problems, ownership, corrections, shareMappings] = await Promise.all([
       vehicleRef.collection('events').where('createdByUid', '==', uid).get(),
       vehicleRef.collection('problems').where('createdByUid', '==', uid).get(),
       vehicleRef.collection('ownershipHistory').where('ownerUid', '==', uid).get(),
       vehicleRef.collection('eventCorrections').where('createdByUid', '==', uid).get(),
+      db.collectionGroup('publicShareMappings').where('vehicleId', '==', vehicleId).get(),
     ]);
+    const removedEventKeys = new Set(events.docs.map(doc => publicEventKey(doc.data())));
     const updates = [
       ...events.docs.map(doc => ({
         ref: doc.ref,
@@ -433,6 +448,26 @@ export const deleteAccountData = onCall(async request => {
       { ref: vehicleRef.collection('members').doc(uid), delete: true },
       { ref: db.doc(`users/${uid}/vehicleMemberships/${vehicleId}`), delete: true },
     ];
+    for (const mapping of shareMappings.docs) {
+      const token = mapping.data().token;
+      if (typeof token !== 'string') continue;
+      const publicRef = db.doc(`publicVehicles/${token}`);
+      const publicSnapshot = await publicRef.get();
+      const publicEvents = publicSnapshot.data()?.events;
+      if (!Array.isArray(publicEvents)) continue;
+      let changed = false;
+      const sanitizedEvents = publicEvents.map(event => {
+        if (!removedEventKeys.has(publicEventKey(event))) return event;
+        changed = true;
+        return { ...event, title: event.category };
+      });
+      if (changed) {
+        updates.push({
+          ref: publicRef,
+          data: { events: sanitizedEvents, updatedAt: Timestamp.now() },
+        });
+      }
+    }
     if (vehicleSnapshot.exists && vehicleSnapshot.data().createdByUid === uid) {
       updates.push({ ref: vehicleRef, data: { createdByUid: FieldValue.delete() } });
     }
