@@ -35,7 +35,7 @@ Har en slumpmässig, ogenomskinlig ID och beskriver bilen, inte kontot. Registre
 
 ### `events/{eventId}`
 
-Innehåller fordonsfakta som kan följa bilen: kategori, rubrik, datum, miltal och källtyp. Källtyper ska kunna skilja mellan exempelvis `owner_entry`, `receipt`, `workshop` och `imported`; en bifogad fil räknas inte automatiskt som verifiering. Detaljerade beskrivningar och verkstadsanteckningar ligger privat per ägare.
+Innehåller fordonsfakta som kan följa bilen: kategori, rubrik, datum, miltal och källtyp. Källtypen väljs av användaren och visas som `Egen uppgift`, `Kvitto angivet`, `Dokument angivet`, `Verkstad angiven` eller `Importerad`. Etiketterna beskriver den uppgivna källan; de är inte en verifieringsstämpel, och en bifogad fil bevisar inte automatiskt uppgiften. Händelser utan källtyp behandlas som `owner_entry`. Detaljerade beskrivningar och verkstadsanteckningar ligger privat per ägare.
 
 En historikpost blir skrivskyddad för nya ägare vid ägarbyte. Rättelser görs som en ny post i `eventCorrections`, med referens till den ursprungliga posten och en synlig tidsstämpel. Den gamla posten skrivs inte över eller raderas i smyg.
 
