@@ -62,8 +62,15 @@ service cloud.firestore {
       function isActiveOwner() {
         return isActiveMember() && getAfter(memberPath()).data.role == 'owner';
       }
+      function isFormerOwner() {
+        return isVerifiedUser()
+          && exists(memberPath())
+          && get(memberPath()).data.uid == request.auth.uid
+          && get(memberPath()).data.active == false
+          && get(memberPath()).data.role == 'former_owner';
+      }
 
-      allow get: if isActiveMember();
+      allow get: if isActiveMember() || isFormerOwner();
       allow list: if false;
       allow create: if isVerifiedUser()
         && request.resource.data.keys().hasOnly(['schemaVersion', 'createdByUid', 'vehicle'])

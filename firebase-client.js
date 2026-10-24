@@ -206,7 +206,7 @@ if (!configured) {
   const cachePlan = (cache, writes) => writes.forEach(write => cache.set(write.path, write.data));
   const accountPreferences = state => Object.fromEntries(
     Object.entries(state || {}).filter(([key]) => ![
-      'vehicles', 'events', 'problems', 'reminders', 'tireSets',
+      'vehicles', 'events', 'problems', 'reminders', 'tireSets', 'transferredVehicles',
     ].includes(key)),
   );
 
@@ -366,6 +366,35 @@ if (!configured) {
       const call = functionsSdk.httpsCallable(functions, 'acceptVehicleTransfer');
       const response = await call({ code });
       return response.data;
+    },
+    async loadTransferredVehicles(uid) {
+      if (auth.currentUser?.uid !== uid) throw new Error('Du kan bara läsa tidigare fordon för det inloggade kontot.');
+      const membershipSnapshot = await firestoreSdk.getDocs(collectionRef('users/' + uid + '/vehicleMemberships'));
+      const formerMemberships = membershipSnapshot.docs.filter(item => {
+        const data = item.data();
+        return data.active === false && data.role === 'former_owner';
+      });
+      return Promise.all(formerMemberships.map(async item => {
+        const vehicleId = item.data().vehicleId || item.id;
+        const [vehicleSnapshot, memberSnapshot, attachmentSnapshot] = await Promise.all([
+          firestoreSdk.getDoc(docRef('vehicles/' + vehicleId)),
+          firestoreSdk.getDoc(docRef('vehicles/' + vehicleId + '/members/' + uid)),
+          firestoreSdk.getDocs(collectionRef('users/' + uid + '/privateVehicles/' + vehicleId + '/attachments')),
+        ]);
+        if (!vehicleSnapshot.exists() || !memberSnapshot.exists()
+          || memberSnapshot.data().uid !== uid
+          || memberSnapshot.data().active !== false
+          || memberSnapshot.data().role !== 'former_owner') return null;
+        const vehicleData = vehicleSnapshot.data();
+        return {
+          id: vehicleId,
+          vehicle: { ...(vehicleData.vehicle || {}) },
+          attachments: attachmentSnapshot.docs.map(file => {
+            const data = file.data();
+            return { id: file.id, name: data.name || 'Bilaga', type: data.type || '', storagePath: data.storagePath || data.path || '' };
+          }).filter(file => file.storagePath),
+        };
+      })).then(items => items.filter(Boolean));
     },
     async loadState(uid) {
       const ref = docRef(`users/${uid}/appData/primary`);
