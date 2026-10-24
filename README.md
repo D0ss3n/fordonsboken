@@ -61,6 +61,8 @@ Deployen har inte körts som del av den här ändringen. Kör `npm run test:rule
 
 ## Datamodell och migrering
 
+Se [`BACKUP-RESTORE.md`](BACKUP-RESTORE.md) för återställning av en Firestore-backup till en separat testdatabas och för Storage-backupens separata begränsningar.
+
 Klienten migrerar v1-data till v2 vid inloggning när v2-markören saknas, läser sedan fordon och historik från v2 och skriver fortsatta ändringar dit. Det gamla `users/{uid}/appData/primary`-dokumentet behålls som oförändrad återställningskopia; konto-inställningar sparas i `preferences-v2`. Se [`DATA_MODEL.md`](DATA_MODEL.md) för strukturen och begränsningarna.
 
 Ändringarna i klienten och `firestore.rules` måste granskas och v2-reglerna deployas innan skarp migrering kan verifieras. Ägarbyten mellan konton ingår inte i den här migreringen.
