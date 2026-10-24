@@ -409,14 +409,16 @@ export const deleteAccountData = onCall(async request => {
       continue;
     }
 
-    const [events, problems, ownership] = await Promise.all([
+    const [events, problems, ownership, corrections] = await Promise.all([
       vehicleRef.collection('events').where('createdByUid', '==', uid).get(),
       vehicleRef.collection('problems').where('createdByUid', '==', uid).get(),
       vehicleRef.collection('ownershipHistory').where('ownerUid', '==', uid).get(),
+      vehicleRef.collection('eventCorrections').where('createdByUid', '==', uid).get(),
     ]);
     const updates = [
       ...[...events.docs, ...problems.docs].map(doc => ({ ref: doc.ref, data: { createdByUid: FieldValue.delete() } })),
       ...ownership.docs.map(doc => ({ ref: doc.ref, delete: true })),
+      ...corrections.docs.map(doc => ({ ref: doc.ref, delete: true })),
       { ref: vehicleRef.collection('members').doc(uid), delete: true },
       { ref: db.doc(`users/${uid}/vehicleMemberships/${vehicleId}`), delete: true },
     ];
