@@ -82,11 +82,10 @@ function publicNumber(value, label, required = false) {
   return result;
 }
 
-function publicEventKey(event) {
+function publicEventIdentity(event) {
   const mileage = event?.mileage == null ? null : Number(event.mileage);
   return JSON.stringify([
     typeof event?.category === 'string' ? event.category.trim() : '',
-    typeof event?.title === 'string' ? event.title.trim().slice(0, 160) : '',
     typeof event?.date === 'string' ? event.date.trim().slice(0, 10) : '',
     Number.isFinite(mileage) && mileage >= 0 ? mileage : null,
     ['owner_entry', 'receipt', 'document', 'workshop', 'imported'].includes(event?.sourceType)
@@ -429,7 +428,7 @@ export const deleteAccountData = onCall(async request => {
       vehicleRef.collection('eventCorrections').where('createdByUid', '==', uid).get(),
       db.collectionGroup('publicShareMappings').where('vehicleId', '==', vehicleId).get(),
     ]);
-    const removedEventKeys = new Set(events.docs.map(doc => publicEventKey(doc.data())));
+    const removedEventKeys = new Set(events.docs.map(doc => publicEventIdentity(doc.data())));
     const updates = [
       ...events.docs.map(doc => ({
         ref: doc.ref,
@@ -457,7 +456,7 @@ export const deleteAccountData = onCall(async request => {
       if (!Array.isArray(publicEvents)) continue;
       let changed = false;
       const sanitizedEvents = publicEvents.map(event => {
-        if (!removedEventKeys.has(publicEventKey(event))) return event;
+        if (!removedEventKeys.has(publicEventIdentity(event))) return event;
         changed = true;
         return { ...event, title: event.category };
       });
@@ -504,6 +503,24 @@ export const publishPublicVehicle = onCall(async request => {
   const mappingRef = db.doc(`users/${uid}/publicShareMappings/${vehicleId}`);
   const legacyShareRef = db.doc(`publicVehicles/${vehicleId}`);
 
+  const [currentVehicle, currentMember] = await Promise.all([vehicleRef.get(), memberRef.get()]);
+  if (!currentVehicle.exists || !activeOwner(currentMember, uid)) {
+    throw new HttpsError('permission-denied', 'Bara en aktiv fordonsägare kan publicera profilen.');
+  }
+  // The client can have a pending local snapshot from before account deletion. Keep
+  // those history rows visible, but never let a stale free-text title overwrite the
+  // neutral category title written by deleteAccountData.
+  const storedEvents = await vehicleRef.collection('events').get();
+  const anonymizedEventIdentities = new Set(storedEvents.docs
+    .filter(doc => typeof doc.data().createdByUid !== 'string' || !doc.data().createdByUid)
+    .map(doc => publicEventIdentity(doc.data())));
+  const safeSnapshot = {
+    ...snapshot,
+    events: snapshot.events.map(event => anonymizedEventIdentities.has(publicEventIdentity(event))
+      ? { ...event, title: event.category }
+      : event),
+  };
+
   const token = await db.runTransaction(async transaction => {
     const [vehicleSnapshot, memberSnapshot, mappingSnapshot] = await Promise.all([
       transaction.get(vehicleRef), transaction.get(memberRef), transaction.get(mappingRef),
@@ -520,7 +537,7 @@ export const publishPublicVehicle = onCall(async request => {
       transaction.get(legacyShareRef),
     ]);
     transaction.set(mappingRef, { schemaVersion: 1, token: shareToken, vehicleId, ownerUid: uid });
-    transaction.set(publicShareRef, snapshot);
+    transaction.set(publicShareRef, safeSnapshot);
     if (vehicleId !== shareToken && legacyShareSnapshot.exists) transaction.delete(legacyShareRef);
     // If a stale/corrupt mapping points elsewhere, remove its old public snapshot too.
     const priorToken = mappingSnapshot.data()?.token;

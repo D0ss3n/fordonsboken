@@ -226,9 +226,23 @@ if (!configured) {
       // Ownership history is managed by trusted transfer/migration flows. A normal save
       // must not replace a real transfer record with the planner's legacy defaults.
       if (!migration && write.kind === 'ownership-history' && cache.has(write.path)) return false;
-      if (write.kind === 'vehicle-event' || write.kind === 'vehicle-problem') {
-        // Earlier owners' entries remain visible, but cannot be rewritten by a later owner.
+      return true;
+    }).map(write => {
+      if (migration || write.kind !== 'vehicle' || !cache.has(write.path)) return write;
+      // A deleted former creator can leave stale creator metadata in the local snapshot.
+      // Preserve the server's protected attribution so a current owner can still save
+      // editable vehicle fields without trying to restore the former owner's UID.
+      const existing = cache.get(write.path);
+      const data = { ...write.data };
+      if (Object.hasOwn(existing || {}, 'createdByUid')) data.createdByUid = existing.createdByUid;
+      else delete data.createdByUid;
+      return { ...write, data };
+    }).filter(write => {
+      if (!migration && (write.kind === 'vehicle-event' || write.kind === 'vehicle-problem')) {
+        // Existing history without current-user attribution is immutable to this owner.
+        const existing = cache.get(write.path);
         if (write.data.createdByUid !== uid) return false;
+        if (existing && existing.createdByUid !== uid) return false;
       }
       return migration || !sameData(cache.get(write.path), write.data);
     });
