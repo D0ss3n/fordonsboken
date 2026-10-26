@@ -1,0 +1,8 @@
+.first-event-guide{display:flex;align-items:center;justify-content:space-between;gap:24px;margin:18px 0 4px;padding:22px}
+.first-event-guide-copy{max-width:680px;min-width:0}
+.first-event-guide-kicker{display:block;margin-bottom:5px;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.11em;text-transform:uppercase}
+.first-event-guide h2{margin:0 0 7px;font-size:20px;letter-spacing:-.03em}
+.first-event-guide p{margin:0;color:var(--muted);line-height:1.55}
+.first-event-guide .first-event-guide-examples{margin-top:8px;font-size:12px}
+.first-event-guide-action{flex:none;white-space:nowrap}
+@media(max-width:720px){.first-event-guide{align-items:flex-start;flex-direction:column;gap:16px;padding:19px}.first-event-guide h2{font-size:18px}.first-event-guide-action{width:100%}}
