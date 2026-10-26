@@ -88,11 +88,7 @@
       ? `${eventTitle}${eventMeta ? ` · ${eventMeta}` : ''} är sparad. Du hittar den i bilens historik och kan när som helst komplettera med kvitto, bild eller fler detaljer.`
       : 'Din första händelse är sparad. Du hittar den i bilens historik och kan när som helst komplettera med kvitto, bild eller fler detaljer.';
 
-    const nextStep = document.createElement('p');
-    nextStep.className = 'first-event-guide-examples';
-    nextStep.textContent = 'Varje liten notering gör historiken mer användbar – fortsätt när du kommer på nästa sak.';
-
-    copy.append(kicker, title, description, nextStep);
+    copy.append(kicker, title, description);
 
     const action = document.createElement('button');
     action.type = 'button';
@@ -107,16 +103,79 @@
       action.textContent = 'Visa historiken';
     }
 
-    const addAnother = document.createElement('button');
-    addAnother.type = 'button';
-    addAnother.className = 'btn secondary first-event-next-action';
-    addAnother.dataset.action = 'add-event';
-    addAnother.textContent = 'Lägg till en sak till';
     const actions = document.createElement('div');
     actions.className = 'first-event-guide-actions';
-    actions.append(action, addAnother);
+    actions.append(action);
     guide.append(copy, actions);
     events.after(guide);
+
+    if (!eventRow || !eventId) return;
+    const category = (eventRow.dataset.eventCategory || '').toLocaleLowerCase('sv-SE');
+    const hasAttachment = eventRow.dataset.hasAttachment === 'true';
+    let suggestion;
+
+    if (category === 'service' || category === 'underhåll') {
+      suggestion = {
+        title: 'Kom ihåg nästa service',
+        description: 'Skapa en påminnelse så slipper du hålla nästa servicetillfälle i huvudet.',
+        action: 'Skapa servicepåminnelse',
+        actionType: 'add-reminder',
+        value: 'Nästa service'
+      };
+    } else if (category === 'besiktning') {
+      suggestion = {
+        title: 'Kom ihåg nästa besiktning',
+        description: 'Lägg in en påminnelse när du vet när bilen ska besiktas igen.',
+        action: 'Skapa besiktningspåminnelse',
+        actionType: 'add-reminder',
+        value: 'Nästa besiktning'
+      };
+    } else if (!hasAttachment) {
+      suggestion = {
+        title: 'Har du kvitto eller bild?',
+        description: 'Lägg till underlag på händelsen så hittar du det tillsammans med historiken.',
+        action: 'Lägg till kvitto eller bild',
+        actionType: 'event-details'
+      };
+    }
+
+    if (!suggestion) return;
+    const dismissalKey = `fordonsmappen.next-step.dismissed:${eventId}`;
+    try {
+      if (sessionStorage.getItem(dismissalKey) === 'true') return;
+    } catch { /* Storage may be unavailable in private browsing. */ }
+
+    const card = document.createElement('section');
+    card.className = 'first-event-next-step';
+    card.dataset.eventId = eventId;
+    card.setAttribute('aria-label', 'Ett förslag på nästa steg');
+
+    const suggestionCopy = document.createElement('div');
+    suggestionCopy.className = 'first-event-next-step-copy';
+    const suggestionTitle = document.createElement('h3');
+    suggestionTitle.textContent = suggestion.title;
+    const suggestionDescription = document.createElement('p');
+    suggestionDescription.textContent = suggestion.description;
+    suggestionCopy.append(suggestionTitle, suggestionDescription);
+
+    const suggestionActions = document.createElement('div');
+    suggestionActions.className = 'first-event-next-step-actions';
+    const suggestionAction = document.createElement('button');
+    suggestionAction.type = 'button';
+    suggestionAction.className = 'btn secondary';
+    suggestionAction.dataset.action = suggestion.actionType;
+    suggestionAction.dataset.id = eventId;
+    if (suggestion.value) suggestionAction.dataset.title = suggestion.value;
+    suggestionAction.textContent = suggestion.action;
+
+    const dismiss = document.createElement('button');
+    dismiss.type = 'button';
+    dismiss.className = 'btn outline first-event-next-step-dismiss';
+    dismiss.dataset.action = 'dismiss-next-step';
+    dismiss.textContent = 'Inte nu';
+    suggestionActions.append(suggestionAction, dismiss);
+    card.append(suggestionCopy, suggestionActions);
+    guide.append(card);
   };
 
   const enhanceDashboard = () => {
