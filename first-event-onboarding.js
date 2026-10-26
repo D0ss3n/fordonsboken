@@ -22,30 +22,37 @@
 
     const kicker = document.createElement('span');
     kicker.className = 'first-event-guide-kicker';
-    kicker.textContent = 'Din bil är tillagd';
+    kicker.textContent = 'Din fordonsbok är redo';
 
     const title = document.createElement('h2');
     title.id = 'first-event-guide-title';
     title.textContent = vehicleName
-      ? `Börja bygga historiken för ${vehicleName}`
-      : 'Börja bygga bilens historik';
+      ? `Ge ${vehicleName} en historia som följer med`
+      : 'Ge bilen en historia som följer med';
 
     const description = document.createElement('p');
-    description.textContent = 'Börja med det du kommer ihåg – du kan lägga till fler saker senare.';
+    description.textContent = 'Samla service, reparationer, kostnader och kvitton här. Då får du koll på vad som är gjort och en tydlig historik att ta med vid ägarbyte.';
 
     const examples = document.createElement('p');
     examples.className = 'first-event-guide-examples';
-    examples.textContent = 'Lägg till till exempel service, reparation, besiktning, kostnad eller dokument.';
+    examples.textContent = 'Börja med en sak du minns – detaljer kan du komplettera senare.';
 
-    copy.append(kicker, title, description, examples);
+    const benefits = document.createElement('ul');
+    benefits.className = 'first-event-benefits';
+    benefits.innerHTML = '<li><span aria-hidden="true">✓</span> Håll koll på vad som gjorts</li><li><span aria-hidden="true">✓</span> Samla kostnader och underlag</li><li><span aria-hidden="true">✓</span> Bygg en historik som följer bilen</li>';
+
+    copy.append(kicker, title, description, examples, benefits);
 
     const action = document.createElement('button');
     action.type = 'button';
     action.className = 'btn primary first-event-guide-action';
     action.dataset.action = 'add-event';
-    action.textContent = 'Lägg till första händelsen →';
+    action.textContent = 'Lägg till första händelsen';
 
-    guide.append(copy, action);
+    const actions = document.createElement('div');
+    actions.className = 'first-event-guide-actions';
+    actions.append(action);
+    guide.append(copy, actions);
     dashboard.after(guide);
     heading.remove();
     emptyState.remove();
@@ -67,28 +74,48 @@
 
     const kicker = document.createElement('span');
     kicker.className = 'first-event-guide-kicker';
-    kicker.textContent = 'Bra, du är igång';
+    kicker.textContent = 'Första steget klart';
 
     const title = document.createElement('h2');
     title.id = 'first-event-saved-title';
-    title.textContent = 'Din händelse finns nu i Historik';
+    title.textContent = 'Historiken är igång';
 
     const description = document.createElement('p');
-    description.textContent = 'Öppna den där om du vill se detaljer eller komplettera med ett kvitto eller en bild.';
+    const eventRow = events.querySelector('.event-row');
+    const eventTitle = eventRow?.querySelector('.event-info strong')?.textContent.trim();
+    const eventMeta = eventRow?.querySelector('.event-info small')?.textContent.trim();
+    description.textContent = eventTitle
+      ? `${eventTitle}${eventMeta ? ` · ${eventMeta}` : ''} är sparad. Du hittar den i bilens historik och kan när som helst komplettera med kvitto, bild eller fler detaljer.`
+      : 'Din första händelse är sparad. Du hittar den i bilens historik och kan när som helst komplettera med kvitto, bild eller fler detaljer.';
 
     const nextStep = document.createElement('p');
     nextStep.className = 'first-event-guide-examples';
-    nextStep.textContent = 'När du kommer på fler saker kan du lägga till dem efter hand, eller skapa en påminnelse.';
+    nextStep.textContent = 'Varje liten notering gör historiken mer användbar – fortsätt när du kommer på nästa sak.';
 
     copy.append(kicker, title, description, nextStep);
 
     const action = document.createElement('button');
     action.type = 'button';
     action.className = 'btn primary first-event-guide-action';
-    action.dataset.page = 'Historik';
-    action.textContent = 'Visa händelsen i Historik →';
+    const eventId = eventRow?.dataset.id;
+    if (eventId) {
+      action.dataset.action = 'event-details';
+      action.dataset.id = eventId;
+      action.textContent = 'Öppna händelsen';
+    } else {
+      action.dataset.page = 'Historik';
+      action.textContent = 'Visa historiken';
+    }
 
-    guide.append(copy, action);
+    const addAnother = document.createElement('button');
+    addAnother.type = 'button';
+    addAnother.className = 'btn secondary first-event-next-action';
+    addAnother.dataset.action = 'add-event';
+    addAnother.textContent = 'Lägg till en sak till';
+    const actions = document.createElement('div');
+    actions.className = 'first-event-guide-actions';
+    actions.append(action, addAnother);
+    guide.append(copy, actions);
     events.after(guide);
   };
 
