@@ -99,7 +99,7 @@
 .date-picker-year-range{margin:0 0 8px;text-align:left;color:var(--muted);font-size:13px}
 
 .date-picker-choice-grid.is-years{grid-template-columns:repeat(5,minmax(0,1fr));padding:2px}
-.date-picker-choice-grid.is-years .date-picker-choice{min-height:38px}
+.date-picker-choice-grid.is-years .date-picker-choice{display:grid;place-items:center;min-height:38px;padding:0;text-align:center}
 
 /* Larger, consistent navigation icons */
 .navitem{font-size:14px;gap:12px}.navitem>span:first-child{width:28px;min-width:28px;display:grid;place-items:center}.nav-icon{width:22px;height:22px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.mobile-nav button{font-size:10px;gap:5px}.mobile-nav-icon{display:grid;place-items:center}.mobile-nav-icon .nav-icon{width:23px;height:23px}
