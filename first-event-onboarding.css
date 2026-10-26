@@ -13,3 +13,10 @@
 .first-event-saved-guide{border-left:4px solid #bd8635;background:linear-gradient(120deg,color-mix(in srgb,var(--paper) 94%,var(--amber)),var(--paper) 75%)}
 .first-event-saved-guide .first-event-guide-kicker::before{content:"✓";width:18px;height:18px;border-radius:50%;background:var(--green);color:var(--ink);display:grid;place-items:center;font-size:11px}
 @media(max-width:720px){.first-event-guide{align-items:stretch;flex-direction:column;gap:19px;padding:20px}.first-event-guide h2{font-size:20px}.first-event-guide-actions{width:100%;min-width:0}.first-event-guide-actions .btn{width:100%}.first-event-benefits{display:grid;gap:8px;margin-top:15px}}
+.event-details-content{display:grid;gap:14px}
+.event-details-content .detail-item{min-width:0}
+.event-details-content .detail-item strong{display:block;overflow-wrap:anywhere}
+.event-detail-description{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.event-detail-description small{display:block;margin-bottom:6px;color:var(--muted);font-size:11px;font-weight:700}
+.event-detail-description p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+.event-attachments-title{margin:2px 0 -6px;font-size:14px}
