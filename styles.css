@@ -111,6 +111,14 @@
 @media(max-width:720px){.install-page{padding:14px 19px 36px}.install-back{margin:5px 0 26px}.install-heading{margin-bottom:24px}.install-heading>p{font-size:15px}.install-card{grid-template-columns:1fr;padding:21px;gap:22px}.install-illustration{min-height:335px}.install-card h2{font-size:23px}.install-steps{gap:13px}.install-page-footer{gap:14px}}
 /* Theme selection */
 .theme-choice-group{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:460px}
+
+/* Improve dark-mode contrast on policy and installation pages. */
+[data-theme="dark"] .policy-section p,[data-theme="dark"] .policy-section li{color:var(--muted)}
+[data-theme="dark"] .install-card{background:var(--paper);color:var(--ink);border-color:var(--line)}
+[data-theme="dark"] .install-card h2,[data-theme="dark"] .install-steps strong,[data-theme="dark"] .install-steps b{color:var(--ink)}
+[data-theme="dark"] .install-browser-note,[data-theme="dark"] .install-steps p{color:var(--muted)}
+[data-theme="dark"] .install-page-footer a{color:#c7d7e8}
+[data-theme="dark"] .install-tip{background:#263341;color:var(--ink)}
 .theme-choice{display:flex;align-items:center;gap:12px;min-height:64px;padding:11px 14px;border:1px solid var(--line);border-radius:13px;background:var(--paper);color:var(--ink);text-align:left}
 .theme-choice:hover{border-color:#9aaea5}
 .theme-choice[aria-pressed=true]{border-color:var(--navy);box-shadow:0 0 0 2px color-mix(in srgb,var(--navy) 18%,transparent);background:color-mix(in srgb,var(--paper) 92%,var(--navy))}
