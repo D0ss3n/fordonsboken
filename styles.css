@@ -144,3 +144,7 @@
 [data-theme="dark"] .badge{background:#4a4029;color:#ffe7ae;border:1px solid #665538}
 [data-theme="dark"] .menu-toggle{background:#263644;border-color:#526174;color:#f1f5f9}
 [data-theme="dark"] .landing-footer,[data-theme="dark"] .landing-footer>a,[data-theme="dark"] .policy-section a,[data-theme="dark"] .policy-page-footer a,[data-theme="dark"] .policy-footer a,[data-theme="dark"] .policy-back,[data-theme="dark"] .terms-acceptance a{color:#c7d7e8}
+
+
+/* Reminder template buttons */
+.reminder-template-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.reminder-template{display:inline-flex;align-items:center;gap:7px}.reminder-template .nav-icon{width:18px;height:18px;flex:none}
