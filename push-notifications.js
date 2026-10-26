@@ -56,7 +56,10 @@ async function enable() {
   }
 
   // Request permission directly from this user action, before awaiting other APIs.
-  const permission = await Notification.requestPermission();
+  if (Notification.permission === 'denied') {
+    throw new Error('Notiser är blockerade för Fordonsmappen. Tillåt dem i webbläsarens eller telefonens webbplatsinställningar och försök igen.');
+  }
+  const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
   if (permission !== 'granted') throw new Error('Notiser tilläts inte. Du kan ändra det i webbläsarens inställningar.');
 
   const [{ app, auth, messaging, functions }, serviceWorkerRegistration] = await Promise.all([
