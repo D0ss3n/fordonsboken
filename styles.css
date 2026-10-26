@@ -132,3 +132,7 @@
 [data-theme="dark"] .menu-toggle,[data-theme="dark"] .date-picker-period-button{color:var(--ink)}
 [data-theme="dark"] .theme-choice[aria-pressed=true]{background:#293b50}
 @media(max-width:560px){.theme-choice-group{max-width:none}.theme-choice{padding:10px;gap:8px}}
+/* Dark-theme contrast fixes */
+[data-theme="dark"] .badge{background:#4a4029;color:#ffe7ae;border:1px solid #665538}
+[data-theme="dark"] .menu-toggle{background:#263644;border-color:#526174;color:#f1f5f9}
+[data-theme="dark"] .landing-footer,[data-theme="dark"] .landing-footer>a,[data-theme="dark"] .policy-section a,[data-theme="dark"] .policy-page-footer a,[data-theme="dark"] .policy-footer a,[data-theme="dark"] .policy-back,[data-theme="dark"] .terms-acceptance a{color:#c7d7e8}
