@@ -12,6 +12,11 @@ service cloud.firestore {
       allow read, write: if isVerifiedUser() && request.auth.uid == userId;
     }
 
+    // Push tokens are stored and removed only by trusted callable functions.
+    match /users/{userId}/pushTokens/{tokenId} {
+      allow read, write: if false;
+    }
+
     // Public-share ownership mappings are managed only by trusted callable functions.
     match /users/{userId}/publicShareMappings/{vehicleId} {
       allow read, write: if false;

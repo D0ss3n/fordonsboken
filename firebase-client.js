@@ -1,4 +1,4 @@
-import { firebaseConfig } from './firebase-config.js?v=storage-sync-20261006';
+import { firebaseConfig } from './firebase-config.js?v=push-messaging-20261026';
 import { createVehicleModelV2Plan } from './vehicle-model-v2.js?v=vehicle-model-v2-20261007';
 
 const configured = Boolean(firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId && firebaseConfig.appId);
@@ -333,6 +333,7 @@ if (!configured) {
       if (photoURL && user.photoURL !== photoURL) await authSdk.updateProfile(user, { photoURL });
       return photoURL;
     },
+    currentUser: () => auth.currentUser,
     signOut: () => authSdk.signOut(auth),
     async exportAccountData() {
       if (!auth.currentUser) throw new Error('Logga in för att exportera kontot.');

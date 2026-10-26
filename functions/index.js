@@ -3,6 +3,7 @@ import { createGzip } from 'node:zlib';
 import { finished } from 'node:stream/promises';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { getMessaging } from 'firebase-admin/messaging';
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { setGlobalOptions } from 'firebase-functions/v2';
@@ -790,4 +791,97 @@ export const purgeExpiredVehicleTransfers = onSchedule({
     newTransfers,
     legacyTransfers,
   });
+});
+
+export const registerPushToken = onCall(async request => {
+  const uid = requireUid(request);
+  const token = request.data?.token;
+  if (typeof token !== 'string' || token.length < 40 || token.length > 4096 || /\s/.test(token)) {
+    throw new HttpsError('invalid-argument', 'Webbläsarens notisregistrering är ogiltig.');
+  }
+  const tokenId = createHash('sha256').update(token).digest('hex');
+  const ref = db.doc(`users/${uid}/pushTokens/${tokenId}`);
+  const existing = await ref.get();
+  if (!existing.exists) {
+    const current = await ref.parent.limit(10).get();
+    if (current.size >= 10) {
+      throw new HttpsError('resource-exhausted', 'Ta bort en gammal enhet innan du lägger till fler.');
+    }
+  }
+  await ref.set({ token, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+  return { registered: true };
+});
+
+export const unregisterPushToken = onCall(async request => {
+  const uid = requireUid(request);
+  const token = request.data?.token;
+  if (typeof token !== 'string' || token.length < 40 || token.length > 4096 || /\s/.test(token)) {
+    throw new HttpsError('invalid-argument', 'Webbläsarens notisregistrering är ogiltig.');
+  }
+  const tokenId = createHash('sha256').update(token).digest('hex');
+  await db.doc(`users/${uid}/pushTokens/${tokenId}`).delete();
+  return { unregistered: true };
+});
+
+export const sendDueReminderNotifications = onSchedule({
+  schedule: '0 9-18 * * *',
+  timeZone: 'Europe/Stockholm',
+  timeoutSeconds: 540,
+  region: 'europe-north1',
+  serviceAccount: FUNCTIONS_RUNTIME_SERVICE_ACCOUNT,
+}, async () => {
+  const dateParts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Stockholm',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+  const datePart = type => dateParts.find(part => part.type === type)?.value;
+  const today = `${datePart('year')}-${datePart('month')}-${datePart('day')}`;
+  const dueReminders = await db.collectionGroup('reminders').where('due', '==', today).get();
+  let sent = 0;
+
+  for (const reminder of dueReminders.docs) {
+    const data = reminder.data();
+    if (data.pushSentForDate === today) continue;
+    const path = reminder.ref.path.split('/');
+    if (path.length !== 6 || path[0] !== 'users' || path[2] !== 'privateVehicles' || path[4] !== 'reminders') continue;
+    const [, uid, , vehicleId] = path;
+    const membership = await db.doc(`users/${uid}/vehicleMemberships/${vehicleId}`).get();
+    if (!membership.exists || membership.data()?.active !== true) continue;
+    const tokenSnapshot = await db.collection(`users/${uid}/pushTokens`).get();
+    if (tokenSnapshot.empty) continue;
+
+    let reminderSent = false;
+    for (const tokenDocument of tokenSnapshot.docs) {
+      const token = tokenDocument.data().token;
+      if (typeof token !== 'string') continue;
+      try {
+        await getMessaging().send({
+          token,
+          data: {
+            title: 'Påminnelse från Fordonsmappen',
+            body: `${String(data.title || 'Din fordonsmappspåminnelse').slice(0, 160)} är aktuell idag.`,
+            url: '/',
+          },
+        });
+        reminderSent = true;
+      } catch (error) {
+        if (['messaging/registration-token-not-registered', 'messaging/invalid-registration-token'].includes(error?.code)) {
+          await tokenDocument.ref.delete();
+        } else {
+          console.error('Reminder push delivery failed', { reminderPath: reminder.ref.path, code: error?.code || 'unknown' });
+        }
+      }
+    }
+
+    if (reminderSent) {
+      await reminder.ref.set({
+        pushSentForDate: today,
+        pushSentAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      sent += 1;
+    }
+  }
+  console.info('Due reminder push run completed', { date: today, due: dueReminders.size, sent });
 });

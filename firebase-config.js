@@ -4,6 +4,8 @@ export const firebaseConfig = {
   apiKey: 'AIzaSyCebbUijenF7zMq_nZOLr0kJCO-lHJpU3I',
   authDomain: 'fordonsmappen-af27a.firebaseapp.com',
   projectId: 'fordonsmappen-af27a',
+  messagingSenderId: '567319967961',
   storageBucket: 'fordonsmappen-af27a.firebasestorage.app',
   appId: '1:567319967961:web:39dcf640d69af7dc2566c8',
+  webPushVapidKey: 'BHPdZ-ZzbB1RbGFfmbqN8ny6ajUIrzXnHAg70HlCj2UKHPuWXQh-9lMDSEmXZi-jgqKafBQaoDdGiXad0sc9fH4',
 };
