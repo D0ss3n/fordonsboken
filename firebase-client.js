@@ -347,10 +347,30 @@ if (!configured) {
       if (!response.ok) throw new Error(await response.text() || 'Kunde inte skapa kontoexporten.');
       return response.blob();
     },
-    async deleteAccountData(localAttachmentIds = []) {
+    async deleteAccountData(localAttachmentIds = [], password = '') {
       const user = auth.currentUser;
       if (!user) throw new Error('Logga in för att radera kontot.');
-      await authSdk.reauthenticateWithPopup(user, provider);
+      const tokenResult = await user.getIdTokenResult();
+      const authTime = Date.parse(tokenResult.authTime);
+      const hasRecentSignIn = Number.isFinite(authTime) && Date.now() - authTime < 3 * 60 * 1000;
+      if (!hasRecentSignIn) {
+        const providers = user.providerData.map(item => item.providerId);
+        if (providers.includes('password')) {
+          if (!password) {
+            const error = new Error('Ange ditt lösenord för att bekräfta kontoraderingen.');
+            error.code = 'auth/reauthentication-required';
+            throw error;
+          }
+          const credential = authSdk.EmailAuthProvider.credential(user.email, password);
+          await authSdk.reauthenticateWithCredential(user, credential);
+        } else if (providers.includes('google.com')) {
+          const reauthProvider = new authSdk.GoogleAuthProvider();
+          if (user.email) reauthProvider.setCustomParameters({ login_hint: user.email });
+          await authSdk.reauthenticateWithPopup(user, reauthProvider);
+        } else {
+          throw new Error('Logga in igen innan du raderar kontot.');
+        }
+      }
       const call = functionsSdk.httpsCallable(functions, 'deleteAccountData');
       const response = await call({});
       localStorage.removeItem('fordonsboken.v1');
