@@ -148,3 +148,8 @@
 
 /* Reminder template buttons */
 .reminder-template-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.reminder-template{display:inline-flex;align-items:center;gap:7px}.reminder-template .nav-icon{width:18px;height:18px;flex:none}
+
+
+/* Move the empty-history action slightly to the right */
+.history-empty .btn{margin-left:18px}
+@media(max-width:760px){.history-empty .btn{margin-left:0}}
