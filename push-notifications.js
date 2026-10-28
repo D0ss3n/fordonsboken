@@ -8,6 +8,10 @@ const functionsSdkUrl = `https://www.gstatic.com/firebasejs/${sdkVersion}/fireba
 let messagingSdkPromise;
 let foregroundListenerReady = false;
 
+function tokenStorageKey(uid) {
+  return `fordonsmappen.push.token.${uid}`;
+}
+
 async function sdk() {
   if (!messagingSdkPromise) {
     messagingSdkPromise = Promise.all([
@@ -76,28 +80,48 @@ async function enable() {
 
   const callable = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'registerPushToken');
   await callable({ token });
+  localStorage.setItem(tokenStorageKey(auth.getAuth(app).currentUser.uid), token);
 
   listenForForegroundMessages(messaging, messageClient);
   return true;
 }
 
 async function disable() {
-  const [{ app, auth, messaging, functions }, serviceWorkerRegistration] = await Promise.all([
-    sdk(),
-    navigator.serviceWorker.getRegistration('/'),
-  ]);
-  if (!auth.getAuth(app).currentUser) throw new Error('Logga in för att stänga av telefonnotiser.');
+  const { app, auth, messaging, functions } = await sdk();
+  const user = auth.getAuth(app).currentUser;
+  if (!user) throw new Error('Logga in för att stänga av telefonnotiser.');
+  const serviceWorkerRegistration = await navigator.serviceWorker.getRegistration('/');
   const messageClient = messaging.getMessaging(app);
-  const token = await messaging.getToken(messageClient, {
-    vapidKey: firebaseConfig.webPushVapidKey,
-    serviceWorkerRegistration,
-  });
+  const tokenKey = tokenStorageKey(user.uid);
+  let token = localStorage.getItem(tokenKey);
+
+  // A denied browser permission makes getToken() reject with permission-blocked.
+  // The browser already prevents delivery, so unsubscribe locally and use a
+  // previously cached token to remove the server registration when available.
+  if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+    if (token) {
+      const callable = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'unregisterPushToken');
+      await callable({ token });
+      localStorage.removeItem(tokenKey);
+    }
+    const subscription = await serviceWorkerRegistration?.pushManager?.getSubscription();
+    if (subscription) await subscription.unsubscribe();
+    return { permissionBlocked: true, serverTokenRemoved: Boolean(token) };
+  }
+
+  if (!token) {
+    token = await messaging.getToken(messageClient, {
+      vapidKey: firebaseConfig.webPushVapidKey,
+      serviceWorkerRegistration,
+    });
+  }
   if (token) {
     const callable = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'unregisterPushToken');
     await callable({ token });
     await messaging.deleteToken(messageClient);
   }
-  return true;
+  localStorage.removeItem(tokenKey);
+  return { permissionBlocked: false, serverTokenRemoved: Boolean(token) };
 }
 
 window.FordonsmappenPush = {
