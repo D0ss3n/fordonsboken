@@ -1,0 +1,59 @@
+.problem-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.resolve-problem-btn {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1px solid #c9dece;
+  border-radius: 12px;
+  background: #edf6ef;
+  color: #24543b;
+  white-space: nowrap;
+}
+
+.resolve-problem-btn:hover {
+  background: #e1f0e5;
+}
+
+.resolve-problem-btn span {
+  display: grid;
+  width: 19px;
+  height: 19px;
+  place-items: center;
+  border-radius: 50%;
+  background: #d9ebdd;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.resolve-problem-btn:focus-visible {
+  outline: 3px solid #7bb38a;
+  outline-offset: 2px;
+}
+
+[data-theme="dark"] .resolve-problem-btn {
+  border-color: #426b52;
+  background: #23382f;
+  color: #d8f2df;
+}
+
+[data-theme="dark"] .resolve-problem-btn:hover {
+  background: #2b4637;
+}
+
+[data-theme="dark"] .resolve-problem-btn span {
+  background: #31523e;
+}
+
+@media (max-width: 600px) {
+  .problem-card-head {
+    flex-direction: column;
+    gap: 14px;
+  }
+}
