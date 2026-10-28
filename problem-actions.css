@@ -51,6 +51,10 @@
   background: #31523e;
 }
 
+:root[data-theme="dark"] .topbar {
+  background: var(--bg);
+}
+
 @media (max-width: 600px) {
   .problem-card-head {
     flex-direction: column;
