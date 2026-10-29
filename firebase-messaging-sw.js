@@ -32,6 +32,10 @@ messaging.onBackgroundMessage(payload => {
     body: data.body || 'Du har en påminnelse för ditt fordon.',
     icon: '/favicon.svg',
     badge: '/favicon.svg',
-    data: { url: data.url || '/' },
+    data: {
+      url: data.url || '/',
+      reminderId: data.reminderId || '',
+      vehicleId: data.vehicleId || '',
+    },
   });
 });

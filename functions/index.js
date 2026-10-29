@@ -862,7 +862,9 @@ export const sendDueReminderNotifications = onSchedule({
           data: {
             title: 'Påminnelse från Fordonsmappen',
             body: `${String(data.title || 'Din fordonsmappspåminnelse').slice(0, 160)} är aktuell idag.`,
-            url: '/',
+            url: `/?page=reminders&reminderId=${encodeURIComponent(reminder.id)}&vehicleId=${encodeURIComponent(vehicleId)}`,
+            reminderId: reminder.id,
+            vehicleId,
           },
         });
         reminderSent = true;
