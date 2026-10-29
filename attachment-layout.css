@@ -63,3 +63,5 @@
     grid-template-columns: 1fr;
   }
 }
+
+.attachment-card .attachment-remove { align-self: flex-end; margin-top: 8px; }
