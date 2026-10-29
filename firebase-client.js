@@ -333,6 +333,12 @@ if (!configured) {
       if (photoURL && user.photoURL !== photoURL) await authSdk.updateProfile(user, { photoURL });
       return photoURL;
     },
+    async lookupVehicleRegistration(registrationNumber) {
+      if (!auth.currentUser) throw new Error('Logga in för att hämta fordonsuppgifter.');
+      const call = functionsSdk.httpsCallable(functions, 'lookupVehicleRegistration');
+      const response = await call({ registrationNumber });
+      return response.data;
+    },
     currentUser: () => auth.currentUser,
     signOut: () => authSdk.signOut(auth),
     async exportAccountData() {

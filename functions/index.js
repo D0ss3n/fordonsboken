@@ -9,6 +9,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { onInit } from 'firebase-functions/v2/core';
 import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https';
+import { defineSecret } from 'firebase-functions/params';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 
 let db;
@@ -24,6 +25,7 @@ onInit(() => {
 const TRANSFER_LIFETIME_MS = 24 * 60 * 60 * 1000;
 const TRANSFER_RETENTION_MS = 29 * 24 * 60 * 60 * 1000;
 const LEGACY_TRANSFER_RETENTION_MS = (28 * 24 + 12) * 60 * 60 * 1000;
+const REGCHECK_USERNAME = defineSecret('REGCHECK_USERNAME');
 const CODE_PATTERN = /^[A-F0-9]{32}$/;
 const PUBLIC_EVENT_LIMIT = 500;
 const PUBLIC_CATEGORIES = new Set([
@@ -58,6 +60,21 @@ function normalizeCode(value) {
   const code = typeof value === 'string' ? value.replace(/[\s-]/g, '').toUpperCase() : '';
   if (!CODE_PATTERN.test(code)) throw new HttpsError('invalid-argument', 'Överföringskoden har fel format.');
   return code;
+}
+
+function decodeXmlText(value) {
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([\da-f]+);/gi, (_, code) => String.fromCodePoint(parseInt(code, 16)))
+    .replace(/&amp;/g, '&');
+}
+
+function firstVehicleText(...values) {
+  return values.find(value => typeof value === 'string' && value.trim())?.trim() || '';
 }
 
 function codeHash(code) {
@@ -383,6 +400,66 @@ export const syncGoogleProfilePhoto = onCall(async request => {
     console.error('Google-profilbildet kunde inte sparas i Storage', { message: error?.message });
     throw new HttpsError('unavailable', 'Profilbilden kunde inte kopieras till kontots fillagring.');
   }
+});
+
+export const lookupVehicleRegistration = onCall({
+  secrets: [REGCHECK_USERNAME],
+  timeoutSeconds: 30,
+}, async request => {
+  requireUid(request);
+  const registrationNumber = typeof request.data?.registrationNumber === 'string'
+    ? request.data.registrationNumber.replace(/[\s-]/g, '').toUpperCase()
+    : '';
+  if (!/^[A-Z]{3}\d{2}[A-Z0-9]$/.test(registrationNumber)) {
+    throw new HttpsError('invalid-argument', 'Ange ett svenskt registreringsnummer, till exempel ABC123.');
+  }
+  const apiUsername = REGCHECK_USERNAME.value().trim();
+  if (!apiUsername) {
+    throw new HttpsError('failed-precondition', 'Fordonsuppslag är inte konfigurerat ännu.');
+  }
+
+  let response;
+  try {
+    response = await fetch('https://www.regcheck.org.uk/api/reg.asmx/CheckSweden', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ RegistrationNumber: registrationNumber, username: apiUsername }),
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch (error) {
+    console.warn('Vehicle lookup request failed', { name: error?.name || 'unknown' });
+    throw new HttpsError('unavailable', 'Fordonsuppslaget kunde inte nå tjänsten. Försök igen senare.');
+  }
+  if (!response.ok) {
+    console.warn('Vehicle lookup returned an HTTP error', { status: response.status });
+    throw new HttpsError('unavailable', 'Fordonsuppslaget är tillfälligt otillgängligt.');
+  }
+
+  const xml = await response.text();
+  const encodedVehicleJson = xml.match(/<vehicleJson(?:\s[^>]*)?>([\s\S]*?)<\/vehicleJson>/i)?.[1];
+  if (!encodedVehicleJson) {
+    throw new HttpsError('not-found', 'Inga fordonsuppgifter hittades för registreringsnumret.');
+  }
+
+  let vehicleData;
+  try {
+    vehicleData = JSON.parse(decodeXmlText(encodedVehicleJson.trim()));
+  } catch {
+    console.warn('Vehicle lookup returned an unreadable response');
+    throw new HttpsError('unavailable', 'Fordonsuppgifterna kunde inte läsas. Försök igen senare.');
+  }
+
+  const make = firstVehicleText(vehicleData.CarMake?.CurrentTextValue, vehicleData.MakeDescription);
+  const model = firstVehicleText(vehicleData.CarModel?.CurrentTextValue, vehicleData.ModelDescription);
+  const rawYear = firstVehicleText(vehicleData.ManufactureYearFrom, vehicleData.RegistrationYear);
+  const year = /^\d{4}$/.test(rawYear) && Number(rawYear) >= 1886 && Number(rawYear) <= new Date().getFullYear() + 1
+    ? rawYear
+    : '';
+  if (!make && !model && !year) {
+    throw new HttpsError('not-found', 'Inga fordonsuppgifter hittades för registreringsnumret.');
+  }
+
+  return { make, model, year };
 });
 
 export const deleteAccountData = onCall(async request => {

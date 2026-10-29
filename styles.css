@@ -172,3 +172,5 @@
 .problem-box small{color:#65716d}
 [data-theme="dark"] .problem-box{background:#f4cf62;border-color:#ffe08a;color:#17263f}
 [data-theme="dark"] .problem-box small{color:#263545}
+
+.registration-lookup-row{display:flex;align-items:stretch;gap:8px}.registration-lookup-row input{flex:1;min-width:0}.registration-lookup-row .btn{white-space:nowrap}@media(max-width:520px){.registration-lookup-row{flex-direction:column}.registration-lookup-row .btn{width:100%}}
