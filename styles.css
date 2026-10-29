@@ -182,5 +182,3 @@
 [data-theme="dark"] .field label{color:#c4cfda}
 
 [data-theme="dark"] .mobile-nav button.active{color:#e7f1ff;background:#304d70;border-radius:12px}
-
-.event-reuse-suggestion{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;margin-bottom:12px;border:1px solid var(--line);border-radius:11px;background:#f3f5f2;color:var(--ink);font-size:12px}.event-reuse-suggestion .btn{flex-shrink:0}[data-theme="dark"] .event-reuse-suggestion{background:#263341;color:var(--ink)}@media(max-width:420px){.event-reuse-suggestion{align-items:flex-start;flex-direction:column}}
