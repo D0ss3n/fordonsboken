@@ -77,6 +77,15 @@ function firstVehicleText(...values) {
   return values.find(value => typeof value === 'string' && value.trim())?.trim() || '';
 }
 
+function formatEngineSize(value) {
+  const raw = firstVehicleText(typeof value === 'number' ? String(value) : value);
+  const match = raw.match(/\d+(?:[.,]\d+)?/);
+  if (!match) return raw;
+  const displacement = Number(match[0].replace(',', '.'));
+  if (!Number.isFinite(displacement) || displacement < 100) return raw;
+  return `${(displacement / 1000).toLocaleString('sv-SE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} l`;
+}
+
 function codeHash(code) {
   return createHash('sha256').update(code, 'utf8').digest('hex');
 }
@@ -451,15 +460,16 @@ export const lookupVehicleRegistration = onCall({
 
   const make = firstVehicleText(vehicleData.CarMake?.CurrentTextValue, vehicleData.MakeDescription);
   const model = firstVehicleText(vehicleData.CarModel?.CurrentTextValue, vehicleData.ModelDescription);
+  const engineSize = formatEngineSize(vehicleData.EngineSize?.CurrentTextValue);
   const rawYear = firstVehicleText(vehicleData.ManufactureYearFrom, vehicleData.RegistrationYear);
   const year = /^\d{4}$/.test(rawYear) && Number(rawYear) >= 1886 && Number(rawYear) <= new Date().getFullYear() + 1
     ? rawYear
     : '';
-  if (!make && !model && !year) {
+  if (!make && !model && !year && !engineSize) {
     throw new HttpsError('not-found', 'Inga fordonsuppgifter hittades för registreringsnumret.');
   }
 
-  return { make, model, year };
+  return { make, model, year, engineSize };
 });
 
 export const deleteAccountData = onCall(async request => {
