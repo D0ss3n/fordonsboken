@@ -162,3 +162,8 @@
 .email-verified-icon{display:grid;place-items:center;width:21px;height:21px;border-radius:50%;background:#d8eadc;color:#247044;font-size:13px;line-height:1}
 [data-theme="dark"] .email-verified-badge{border-color:#34594a;background:#1f382f;color:#c9eed8}
 [data-theme="dark"] .email-verified-icon{background:#2b5542;color:#a9edc2}
+
+[data-theme="dark"] .vehicle-card .badge{background:#f4cf62;color:#17263f;border:1px solid #ffe08a}
+
+[data-theme="dark"] .problem-box{background:#39351f;border-color:#81703c;color:#fff0b8}
+[data-theme="dark"] .problem-box small{color:#ddcd98}
