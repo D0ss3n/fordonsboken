@@ -167,3 +167,8 @@
 
 [data-theme="dark"] .problem-box{background:#39351f;border-color:#81703c;color:#fff0b8}
 [data-theme="dark"] .problem-box small{color:#ddcd98}
+
+.problem-box{background:#eef1ee;border:1px solid #dce2dc;color:#26312f}
+.problem-box small{color:#65716d}
+[data-theme="dark"] .problem-box{background:#f4cf62;border-color:#ffe08a;color:#17263f}
+[data-theme="dark"] .problem-box small{color:#263545}
