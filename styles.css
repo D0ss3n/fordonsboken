@@ -176,3 +176,5 @@
 .registration-lookup-row{display:flex;align-items:stretch;gap:8px}.registration-lookup-row input{flex:1;min-width:0}.registration-lookup-row .btn{white-space:nowrap}@media(max-width:520px){.registration-lookup-row{flex-direction:column}.registration-lookup-row .btn{width:100%}}
 
 .vin-optional-input{max-width:320px;padding:9px 11px!important}
+
+.panel-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:14px}.panel-heading h3{margin:0}.panel-heading .btn{flex-shrink:0}
