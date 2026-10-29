@@ -157,3 +157,8 @@
 [data-theme="dark"].reminder-row.notification-highlight{border-color:#e7bd55;background:#3a321d;box-shadow:0 0 0 3px #e7bd5555}
 @keyframes reminder-highlight-pulse{50%{box-shadow:0 0 0 6px #d4a62f22}}
 @media(prefers-reduced-motion:reduce){.reminder-row.notification-highlight{animation:none}}
+
+.email-verified-badge{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:7px 13px;border:1px solid #cfe0d4;border-radius:999px;background:#edf5ef;color:#28523b;font-size:12px;font-weight:700;white-space:nowrap}
+.email-verified-icon{display:grid;place-items:center;width:21px;height:21px;border-radius:50%;background:#d8eadc;color:#247044;font-size:13px;line-height:1}
+[data-theme="dark"] .email-verified-badge{border-color:#34594a;background:#1f382f;color:#c9eed8}
+[data-theme="dark"] .email-verified-icon{background:#2b5542;color:#a9edc2}
