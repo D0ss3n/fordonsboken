@@ -174,3 +174,5 @@
 [data-theme="dark"] .problem-box small{color:#b8c5d2}
 
 .registration-lookup-row{display:flex;align-items:stretch;gap:8px}.registration-lookup-row input{flex:1;min-width:0}.registration-lookup-row .btn{white-space:nowrap}@media(max-width:520px){.registration-lookup-row{flex-direction:column}.registration-lookup-row .btn{width:100%}}
+
+.vin-optional-input{max-width:320px;padding:9px 11px!important}
