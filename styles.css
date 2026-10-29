@@ -180,3 +180,5 @@
 .panel-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:14px}.panel-heading h3{margin:0}.panel-heading .btn{flex-shrink:0}
 
 [data-theme="dark"] .field label{color:#c4cfda}
+
+[data-theme="dark"] .mobile-nav button.active{color:#e7f1ff;background:#304d70;border-radius:12px}
