@@ -182,3 +182,5 @@
 [data-theme="dark"] .field label{color:#c4cfda}
 
 [data-theme="dark"] .mobile-nav button.active{color:#e7f1ff;background:#304d70;border-radius:12px}
+
+.overlay.modal-confirmation{z-index:11}
