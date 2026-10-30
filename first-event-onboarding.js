@@ -112,9 +112,17 @@
     if (!eventRow || !eventId) return;
     const category = (eventRow.dataset.eventCategory || '').toLocaleLowerCase('sv-SE');
     const hasAttachment = eventRow.dataset.hasAttachment === 'true';
+    const hasMileage = eventRow.dataset.hasMileage === 'true';
     let suggestion;
 
-    if (category === 'service' || category === 'underhåll') {
+    if (!hasMileage) {
+      suggestion = {
+        title: 'Vill du lägga till miltal?',
+        description: 'Om du vet mätarställningen vid tillfället blir historiken mer komplett. Du kan också göra det senare.',
+        action: 'Lägg till miltal',
+        actionType: 'complete-event-mileage'
+      };
+    } else if (category === 'service' || category === 'underhåll') {
       suggestion = {
         title: 'Kom ihåg nästa service',
         description: 'Skapa en påminnelse så slipper du hålla nästa servicetillfälle i huvudet.',
