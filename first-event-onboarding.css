@@ -28,3 +28,6 @@
 .event-detail-description small{display:block;margin-bottom:6px;color:var(--muted);font-size:11px;font-weight:700}
 .event-detail-description p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
 .event-attachments-title{margin:2px 0 -6px;font-size:14px}
+
+[data-theme="dark"] .first-event-saved-guide .first-event-guide-kicker{color:#e8f0fb;background:#2b4668;border:1px solid #587ba4;border-radius:999px;padding:6px 11px;font-size:11px;letter-spacing:.09em}
+[data-theme="dark"] .first-event-saved-guide .first-event-guide-kicker::before{background:#b6d7c0;color:#15251f}
