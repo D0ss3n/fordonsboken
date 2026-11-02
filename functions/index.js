@@ -927,22 +927,44 @@ export const sendDueReminderNotifications = onSchedule({
   const today = `${datePart('year')}-${datePart('month')}-${datePart('day')}`;
   const dueReminders = await db.collectionGroup('reminders').where('due', '==', today).get();
   let sent = 0;
+  let alreadySent = 0;
+  let invalidReminderPath = 0;
+  let inactiveVehicleMembership = 0;
+  let noRegisteredTokens = 0;
+  let attemptedTokens = 0;
+  let deliveredTokens = 0;
+  let failedTokens = 0;
+  let expiredTokens = 0;
+  const failureCodes = {};
 
   for (const reminder of dueReminders.docs) {
     const data = reminder.data();
-    if (data.pushSentForDate === today) continue;
+    if (data.pushSentForDate === today) {
+      alreadySent += 1;
+      continue;
+    }
     const path = reminder.ref.path.split('/');
-    if (path.length !== 6 || path[0] !== 'users' || path[2] !== 'privateVehicles' || path[4] !== 'reminders') continue;
+    if (path.length !== 6 || path[0] !== 'users' || path[2] !== 'privateVehicles' || path[4] !== 'reminders') {
+      invalidReminderPath += 1;
+      continue;
+    }
     const [, uid, , vehicleId] = path;
     const membership = await db.doc(`users/${uid}/vehicleMemberships/${vehicleId}`).get();
-    if (!membership.exists || membership.data()?.active !== true) continue;
+    if (!membership.exists || membership.data()?.active !== true) {
+      inactiveVehicleMembership += 1;
+      continue;
+    }
     const tokenSnapshot = await db.collection(`users/${uid}/pushTokens`).get();
-    if (tokenSnapshot.empty) continue;
+    if (tokenSnapshot.empty) {
+      noRegisteredTokens += 1;
+      continue;
+    }
 
     let reminderSent = false;
     for (const tokenDocument of tokenSnapshot.docs) {
       const token = tokenDocument.data().token;
       if (typeof token !== 'string') continue;
+      attemptedTokens += 1;
       try {
         await getMessaging().send({
           token,
@@ -955,11 +977,16 @@ export const sendDueReminderNotifications = onSchedule({
           },
         });
         reminderSent = true;
+        deliveredTokens += 1;
       } catch (error) {
         if (['messaging/registration-token-not-registered', 'messaging/invalid-registration-token'].includes(error?.code)) {
           await tokenDocument.ref.delete();
+          expiredTokens += 1;
         } else {
-          console.error('Reminder push delivery failed', { reminderPath: reminder.ref.path, code: error?.code || 'unknown' });
+          failedTokens += 1;
+          const code = error?.code || 'unknown';
+          failureCodes[code] = (failureCodes[code] || 0) + 1;
+          console.error('Reminder push delivery failed', { code });
         }
       }
     }
@@ -972,5 +999,18 @@ export const sendDueReminderNotifications = onSchedule({
       sent += 1;
     }
   }
-  console.info('Due reminder push run completed', { date: today, due: dueReminders.size, sent });
+  console.info('Due reminder push run completed', {
+    date: today,
+    due: dueReminders.size,
+    sent,
+    alreadySent,
+    invalidReminderPath,
+    inactiveVehicleMembership,
+    noRegisteredTokens,
+    attemptedTokens,
+    deliveredTokens,
+    failedTokens,
+    expiredTokens,
+    failureCodes,
+  });
 });
