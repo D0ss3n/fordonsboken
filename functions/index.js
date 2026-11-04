@@ -914,7 +914,7 @@ export const sendDueReminderNotifications = onSchedule({
   schedule: '0 9-11 * * *',
   timeZone: 'Europe/Stockholm',
   timeoutSeconds: 540,
-  region: 'europe-north1',
+  region: 'europe-west1',
   serviceAccount: FUNCTIONS_RUNTIME_SERVICE_ACCOUNT,
 }, async () => {
   const dateParts = new Intl.DateTimeFormat('en-CA', {
