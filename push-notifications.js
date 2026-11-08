@@ -12,6 +12,23 @@ function tokenStorageKey(uid) {
   return `fordonsmappen.push.token.${uid}`;
 }
 
+function deviceLabel() {
+  const ua = navigator.userAgent || '';
+  const platform = navigator.userAgentData?.platform
+    || (/iPad|iPhone|iPod/.test(ua) ? 'iPhone/iPad'
+      : /Android/.test(ua) ? 'Android'
+        : /Windows/.test(ua) ? 'Windows'
+          : /Mac OS|Macintosh/.test(ua) ? 'Mac'
+            : /Linux/.test(ua) ? 'Linux' : 'Enhet');
+  const browser = /Edg\//.test(ua) ? 'Edge'
+    : /OPR\//.test(ua) ? 'Opera'
+      : /Firefox\//.test(ua) ? 'Firefox'
+        : /CriOS\//.test(ua) ? 'Chrome'
+          : /Chrome\//.test(ua) ? 'Chrome'
+            : /Safari\//.test(ua) ? 'Safari' : 'webbläsare';
+  return `${platform} · ${browser}`;
+}
+
 async function sdk() {
   if (!messagingSdkPromise) {
     messagingSdkPromise = Promise.all([
@@ -79,7 +96,7 @@ async function enable() {
   if (!token) throw new Error('Webbläsaren kunde inte registreras för notiser.');
 
   const callable = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'registerPushToken');
-  await callable({ token });
+  await callable({ token, deviceLabel: deviceLabel() });
   localStorage.setItem(tokenStorageKey(auth.getAuth(app).currentUser.uid), token);
 
   listenForForegroundMessages(messaging, messageClient);
@@ -127,6 +144,14 @@ async function disable() {
 window.FordonsmappenPush = {
   enable,
   disable,
+  async listDevices() {
+    const { app, auth, functions } = await sdk();
+    const user = auth.getAuth(app).currentUser;
+    if (!user) throw new Error('Logga in för att visa enheter med aktiva notiser.');
+    const callable = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'listPushDevices');
+    const response = await callable();
+    return response.data?.devices || [];
+  },
   isConfigured: Boolean(firebaseConfig.webPushVapidKey),
 };
 window.dispatchEvent(new CustomEvent('fordonsmappen-push-ready'));

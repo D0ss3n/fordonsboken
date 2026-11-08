@@ -888,6 +888,9 @@ export const registerPushToken = onCall(async request => {
   }
   const tokenId = createHash('sha256').update(token).digest('hex');
   const ref = db.doc(`users/${uid}/pushTokens/${tokenId}`);
+  const deviceLabel = typeof request.data?.deviceLabel === 'string'
+    ? request.data.deviceLabel.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 80)
+    : '';
   const existing = await ref.get();
   if (!existing.exists) {
     const current = await ref.parent.limit(10).get();
@@ -895,7 +898,7 @@ export const registerPushToken = onCall(async request => {
       throw new HttpsError('resource-exhausted', 'Ta bort en gammal enhet innan du lägger till fler.');
     }
   }
-  await ref.set({ token, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+  await ref.set({ token, deviceLabel: deviceLabel || 'Enhet', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
   return { registered: true };
 });
 
@@ -908,6 +911,21 @@ export const unregisterPushToken = onCall(async request => {
   const tokenId = createHash('sha256').update(token).digest('hex');
   await db.doc(`users/${uid}/pushTokens/${tokenId}`).delete();
   return { unregistered: true };
+});
+
+export const listPushDevices = onCall(async request => {
+  const uid = requireUid(request);
+  const snapshot = await db.collection(`users/${uid}/pushTokens`).get();
+  return {
+    devices: snapshot.docs.map(document => {
+      const data = document.data();
+      return {
+        id: document.id,
+        label: typeof data.deviceLabel === 'string' ? data.deviceLabel : 'Enhet',
+        updatedAt: data.updatedAt?.toDate?.().toISOString() || null,
+      };
+    }),
+  };
 });
 
 export const sendDueReminderNotifications = onSchedule({

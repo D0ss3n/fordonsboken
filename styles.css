@@ -164,6 +164,7 @@
 [data-theme="dark"] .email-verified-icon{background:#2b5542;color:#a9edc2}
 [data-theme="dark"] .problem-card-head .pill[style*="--amber"]{background:#304865!important;color:#e0ecfb!important;border:1px solid #4c6b8e}
 [data-theme="dark"] .problem-card-head .pill[style*="--green"]{background:#294b3d!important;color:#d2f2df!important;border:1px solid #47765f}
+.push-device-list{display:grid;gap:8px}.push-device-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}.push-device-row strong,.push-device-row small{display:block}.push-device-row small{margin-top:4px;color:var(--muted);font-size:12px}
 
 [data-theme="dark"] .vehicle-card .badge{background:#f4cf62;color:#17263f;border:1px solid #ffe08a}
 
