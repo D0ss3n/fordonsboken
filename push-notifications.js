@@ -28,12 +28,16 @@ async function deviceLabel() {
     model = ua.match(/Android[^;)]*;\s*([^;)]+?)(?:\s+Build\/|[;)])/i)?.[1]?.trim() || '';
   }
   if (/^(?:K|wv|Android|Unknown|Generic)$/i.test(model)) model = '';
-  const modelIsSamsung = /^(?:SM-|GT-|Galaxy\b)/i.test(model) || /Samsung|Galaxy/i.test(ua);
-  const modelIsOnePlus = /OnePlus/i.test(model) || /OnePlus/i.test(ua);
+  const knownModels = { CPH2581: 'OnePlus 12', CPH2609: 'OnePlus 12R' };
+  const friendlyModel = knownModels[model.toUpperCase()] || model;
+  const modelIsSamsung = /^(?:SM-|GT-|Galaxy\b)/i.test(friendlyModel) || /Samsung|Galaxy/i.test(ua);
+  const modelIsOnePlus = /OnePlus/i.test(friendlyModel) || /OnePlus/i.test(ua);
+  const isIPad = /iPad/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const platform = modelIsSamsung ? (model ? `Samsung ${model}` : 'Samsung')
-    : modelIsOnePlus ? (model ? `OnePlus ${model}` : 'OnePlus')
-      : /iPad|iPhone|iPod/.test(ua) ? 'iPhone/iPad'
-        : model ? model
+    : modelIsOnePlus ? friendlyModel
+      : isIPad ? 'iPad'
+        : /iPhone|iPod/.test(ua) ? 'iPhone'
+          : model ? model
           : navigator.userAgentData?.platform
             || (/Android/.test(ua) ? 'Android'
               : /Windows/.test(ua) ? 'Windows'
