@@ -12,14 +12,33 @@ function tokenStorageKey(uid) {
   return `fordonsmappen.push.token.${uid}`;
 }
 
-function deviceLabel() {
+function deviceLabelStorageKey(uid) {
+  return `fordonsmappen.push.label.${uid}`;
+}
+
+async function deviceLabel() {
   const ua = navigator.userAgent || '';
-  const platform = navigator.userAgentData?.platform
-    || (/iPad|iPhone|iPod/.test(ua) ? 'iPhone/iPad'
-      : /Android/.test(ua) ? 'Android'
-        : /Windows/.test(ua) ? 'Windows'
-          : /Mac OS|Macintosh/.test(ua) ? 'Mac'
-            : /Linux/.test(ua) ? 'Linux' : 'Enhet');
+  let model = '';
+  try {
+    model = (await navigator.userAgentData?.getHighEntropyValues?.(['model']))?.model?.trim() || '';
+  } catch {
+    // Some browsers do not expose the hardware model.
+  }
+  if (!model && /Android/i.test(ua)) {
+    model = ua.match(/Android[^;)]*;\s*([^;)]+?)(?:\s+Build\/|[;)])/i)?.[1]?.trim() || '';
+  }
+  if (/^(?:K|wv|Android|Unknown|Generic)$/i.test(model)) model = '';
+  const modelIsSamsung = /^(?:SM-|GT-|Galaxy\b)/i.test(model) || /Samsung|Galaxy/i.test(ua);
+  const modelIsOnePlus = /OnePlus/i.test(model) || /OnePlus/i.test(ua);
+  const platform = modelIsSamsung ? (model ? `Samsung ${model}` : 'Samsung')
+    : modelIsOnePlus ? (model ? `OnePlus ${model}` : 'OnePlus')
+      : /iPad|iPhone|iPod/.test(ua) ? 'iPhone/iPad'
+        : model ? model
+          : navigator.userAgentData?.platform
+            || (/Android/.test(ua) ? 'Android'
+              : /Windows/.test(ua) ? 'Windows'
+                : /Mac OS|Macintosh/.test(ua) ? 'Mac'
+                  : /Linux/.test(ua) ? 'Linux' : 'Enhet');
   const browser = /Edg\//.test(ua) ? 'Edge'
     : /OPR\//.test(ua) ? 'Opera'
       : /Firefox\//.test(ua) ? 'Firefox'
@@ -27,6 +46,27 @@ function deviceLabel() {
           : /Chrome\//.test(ua) ? 'Chrome'
             : /Safari\//.test(ua) ? 'Safari' : 'webbläsare';
   return `${platform} · ${browser}`;
+}
+
+async function refreshCurrentDeviceLabel() {
+  const { app, auth, messaging, functions } = await sdk();
+  const user = auth.getAuth(app).currentUser;
+  if (!user || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  const nextLabel = await deviceLabel();
+  const labelKey = deviceLabelStorageKey(user.uid);
+  if (localStorage.getItem(labelKey) === nextLabel) return;
+  if (!await messaging.isSupported()) return;
+  const registration = await navigator.serviceWorker.getRegistration('/');
+  if (!registration) return;
+  const token = await messaging.getToken(messaging.getMessaging(app), {
+    vapidKey: firebaseConfig.webPushVapidKey,
+    serviceWorkerRegistration: registration,
+  });
+  if (!token) return;
+  const callable = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'registerPushToken');
+  await callable({ token, deviceLabel: nextLabel });
+  localStorage.setItem(tokenStorageKey(user.uid), token);
+  localStorage.setItem(labelKey, nextLabel);
 }
 
 async function sdk() {
@@ -96,8 +136,11 @@ async function enable() {
   if (!token) throw new Error('Webbläsaren kunde inte registreras för notiser.');
 
   const callable = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'registerPushToken');
-  await callable({ token, deviceLabel: deviceLabel() });
-  localStorage.setItem(tokenStorageKey(auth.getAuth(app).currentUser.uid), token);
+  const label = await deviceLabel();
+  await callable({ token, deviceLabel: label });
+  const uid = auth.getAuth(app).currentUser.uid;
+  localStorage.setItem(tokenStorageKey(uid), token);
+  localStorage.setItem(deviceLabelStorageKey(uid), label);
 
   listenForForegroundMessages(messaging, messageClient);
   return true;
@@ -145,6 +188,11 @@ window.FordonsmappenPush = {
   enable,
   disable,
   async listDevices() {
+    try {
+      await refreshCurrentDeviceLabel();
+    } catch (error) {
+      console.info('Could not refresh this device label.', error?.code || 'unavailable');
+    }
     const { app, auth, functions } = await sdk();
     const user = auth.getAuth(app).currentUser;
     if (!user) throw new Error('Logga in för att visa enheter med aktiva notiser.');
