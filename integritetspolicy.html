@@ -16,7 +16,7 @@
     <header class="policy-heading">
       <span class="eyebrow">Fordonsmappen</span>
       <h1>Integritetspolicy</h1>
-      <p>Senast uppdaterad 26 oktober 2026</p>
+      <p>Senast uppdaterad 9 november 2026</p>
     </header>
 
     <section class="policy-section">
@@ -38,6 +38,7 @@
         <li>Uppgifter som behövs för ägarbyte i appen, till exempel kontoidentifierare, status och tidpunkt. Överföringskoden lagras som en hash och gäller i 24 timmar.</li>
         <li>För konton som använder molnfunktioner: vilken version av användarvillkoren du har godkänt och tidpunkten för godkännandet.</li>
         <li>Tekniska uppgifter som behövs för att driva och skydda tjänsten. Google/Firebase och webbhotellet kan också behandla tekniska anslutnings- och logguppgifter.</li>
+        <li>Om du aktiverar telefonnotiser: en push-token som identifierar webbläsarens notisregistrering, en enhets-/webbläsaretikett (om den kan hämtas) samt tidpunkten då registreringen senast uppdaterades. Uppgifterna används för att skicka påminnelser till de enheter du valt.</li>
       </ul>
       <p>Fritext och bilagor kan innehålla uppgifter om andra personer. Lägg inte in sådana uppgifter om de inte behövs för ändamålet.</p>
     </section>
@@ -47,6 +48,7 @@
       <ul>
         <li><strong>Konto, fordonsbok, valda bilagor och ägarbyte:</strong> behandlas för att tillhandahålla de funktioner du använder och fullgöra avtalet om tjänsten.</li>
         <li><strong>Publik delning:</strong> sker bara när du själv aktiverar delning. Den rättsliga grunden är ditt separata samtycke, som du kan återkalla genom att stänga av delningen.</li>
+        <li><strong>Telefonnotiser:</strong> pushnotiser är frivilliga och aktiveras först efter ditt val. Behandlingen av push-token och enhetsregistrering grundas på ditt samtycke. Du kan när som helst återkalla det genom att stänga av notiser eller ta bort enheten i appen. Påminnelserna och annan kontodata påverkas inte.</li>
         <li><strong>Säkerhet och missbruksskydd:</strong> nödvändig behandling för att skydda tjänsten och utreda incidenter grundas på ett berättigat intresse.</li>
         <li><strong>Separat säkerhetskopia av filer i Firebase Storage:</strong> en privat kopia av filerna och tillhörande objektmetadata i en EU-bucket i ett separat Google Cloud-projekt används endast för att återställa uppladdade filer efter oavsiktlig radering eller tekniskt fel. En första kopia har gjorts och Storage Transfer Service synkar därefter dagligen. Den rättsliga grunden är berättigat intresse av driftsäkerhet och återställningsförmåga; intresseavvägningen bekräftades av personuppgiftsansvarig den 25 oktober 2026. Säkerhetskopian omfattar filer i Firebase Storage, inte Firestore, Firebase Authentication, Storage-regler eller appkonfiguration. Den är privat och avskild från appens vanliga åtkomst. Synken ger ingen garanti om en exakt återställningspunkt.</li>
         <li><strong>Hantering av rättighetsbegäranden:</strong> sker för att uppfylla skyldigheter enligt dataskyddsreglerna.</li>
@@ -55,7 +57,7 @@
 
     <section class="policy-section" id="cookies-lokal-lagring">
       <h2>Cookies och lokal lagring</h2>
-      <p>Fordonsmappens egen kod använder inga cookies för annonsering, statistik eller spårning. Tjänsten använder inte heller något separat analysverktyg. För att appen ska fungera och komma ihåg dina uppgifter sparas information i webbläsarens lokala lagring: <code>localStorage</code> och <code>IndexedDB</code>. Det kan omfatta fordonsboken, kontotillstånd, inställningar och bilagor som ännu inte har synkroniserats.</p>
+      <p>Fordonsmappens egen kod använder inga cookies för annonsering, statistik eller spårning. Tjänsten använder inte heller något separat analysverktyg. För att appen ska fungera och komma ihåg dina uppgifter sparas information i webbläsarens lokala lagring: <code>localStorage</code> och <code>IndexedDB</code>. Det kan omfatta fordonsboken, kontotillstånd, inställningar och bilagor som ännu inte har synkroniserats. Om du aktiverar telefonnotiser sparas även push-token och enhetsetikett lokalt för att kunna hantera registreringen på den här enheten.</p>
       <p>Firebase Authentication hanterar inloggningen och sparar inloggningstillstånd i webbläsarens lagring så att du kan fortsätta vara inloggad. Google/Firebase kan också behandla tekniska uppgifter som behövs för inloggning och säkerhet. Se avsnittet <a href="#leverantorer">Vilka leverantörer används?</a> och Googles information om <a href="https://firebase.google.com/support/privacy" rel="noopener noreferrer">integritet och säkerhet i Firebase</a>.</p>
       <p>Uppgifter som bara sparas lokalt finns kvar på enheten tills du rensar Fordonsmappens webbplatsdata i webbläsaren. Om du rensar webbplatsdata kan lokalt sparade eller ännu inte synkroniserade uppgifter försvinna. Appen använder inte lokal lagring för att följa dig mellan webbplatser.</p>
     </section>
@@ -69,6 +71,7 @@
       <h2>Hur länge sparas uppgifterna?</h2>
       <ul>
         <li>Konto, profiluppgifter, privata fordonsuppgifter, bilagor och registrerat godkännande av användarvillkoren sparas medan kontot är aktivt. När du begär kontoradering tas uppgifterna bort från de aktiva Firebase-tjänsterna. Firebase Authentication behåller autentiseringsuppgifter tills kontot raderas; enligt Googles information tas de därefter bort från aktiva system och säkerhetskopior inom 180 dagar. Auth-relaterade IP-loggar sparas i några veckor. Dagliga säkerhetskopior av Firestore-databasen behålls i upp till 84 dagar per säkerhetskopia. De omfattar inte Firebase Auth-konton eller filer i Storage. En Firestore-säkerhetskopia som innehåller uppgifter kan finnas kvar efter att de raderats från den aktiva databasen, tills säkerhetskopian löper ut. Säkerhetskopior används för återställning och är inte tillgängliga som vanlig kontodata.</li>
+        <li>Push-token och enhetsregistrering sparas medan telefonnotiser är aktiverade på enheten. När du stänger av notiser eller tar bort enheten tas registreringen bort från Fordonsmappens aktiva pushlista. Om du tar bort en annan enhet stoppas utskicken direkt; den lokala webbläsarregistreringen kan rensas när enheten öppnar appen igen. Googles Firebase Cloud Messaging behandlar tekniska installationsuppgifter enligt Googles villkor och lagringstider.</li>
         <li>Raderade eller ersatta filer i Firebase Storage behålls i Googles Soft delete-skydd i 7 dagar. Under den tiden kan de återställas av en behörig administratör; därefter tas de bort permanent.</li>
         <li>Den separata säkerhetskopian av filer i Firebase Storage finns i en privat EU-bucket i ett separat Google Cloud-projekt. En första kopia har gjorts och Storage Transfer Service synkar därefter dagligen. När en fil ersätts eller raderas i källan speglas det vid nästa lyckade synk. Backupbucketens versionshantering behåller då den tidigare versionen som icke-aktuell; en livscykelregel gallrar sådana versioner efter 30 dagar som icke-aktuella. Gallringen sker asynkront och kan därför dröja efter att 30 dagar har passerat. En fil som raderas i källan kan alltså finnas kvar i backupen längre än 30 dagar räknat från källraderingen. Backupen används endast för återställning och inte som vanlig användardata. Synken ger ingen garanti om en exakt återställningspunkt. Om en säkerhetskopia återställs ska genomförda raderingsbegäranden tillämpas på nytt innan tjänsten tas i bruk.</li>
         <li>Överföringskoden upphör efter 24 timmar. Överföringsdokumentet ska tas bort inom 30 dagar efter användning eller utgång.</li>

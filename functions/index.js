@@ -913,6 +913,16 @@ export const unregisterPushToken = onCall(async request => {
   return { unregistered: true };
 });
 
+export const removePushDevice = onCall(async request => {
+  const uid = requireUid(request);
+  const deviceId = request.data?.deviceId;
+  if (typeof deviceId !== 'string' || !/^[a-f0-9]{64}$/.test(deviceId)) {
+    throw new HttpsError('invalid-argument', 'Enhetens ID är ogiltigt.');
+  }
+  await db.doc(`users/${uid}/pushTokens/${deviceId}`).delete();
+  return { removed: true };
+});
+
 export const listPushDevices = onCall(async request => {
   const uid = requireUid(request);
   const snapshot = await db.collection(`users/${uid}/pushTokens`).get();

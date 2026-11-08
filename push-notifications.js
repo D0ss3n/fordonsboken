@@ -16,6 +16,15 @@ function deviceLabelStorageKey(uid) {
   return `fordonsmappen.push.label.${uid}`;
 }
 
+function enabledStorageKey(uid) {
+  return `fordonsmappen.push.enabled.${uid}`;
+}
+
+async function tokenId(token) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
 async function deviceLabel() {
   const ua = navigator.userAgent || '';
   let model = '';
@@ -56,6 +65,7 @@ async function refreshCurrentDeviceLabel() {
   const { app, auth, messaging, functions } = await sdk();
   const user = auth.getAuth(app).currentUser;
   if (!user || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  if (localStorage.getItem(enabledStorageKey(user.uid)) === 'false') return;
   const nextLabel = await deviceLabel();
   const labelKey = deviceLabelStorageKey(user.uid);
   if (localStorage.getItem(labelKey) === nextLabel) return;
@@ -67,6 +77,10 @@ async function refreshCurrentDeviceLabel() {
     serviceWorkerRegistration: registration,
   });
   if (!token) return;
+  const list = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'listPushDevices');
+  const registered = await list();
+  const currentDeviceId = await tokenId(token);
+  if (!(registered.data?.devices || []).some(device => device.id === currentDeviceId)) return;
   const callable = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'registerPushToken');
   await callable({ token, deviceLabel: nextLabel });
   localStorage.setItem(tokenStorageKey(user.uid), token);
@@ -168,6 +182,8 @@ async function disable() {
       await callable({ token });
       localStorage.removeItem(tokenKey);
     }
+    localStorage.setItem(enabledStorageKey(user.uid), 'false');
+    localStorage.removeItem(deviceLabelStorageKey(user.uid));
     const subscription = await serviceWorkerRegistration?.pushManager?.getSubscription();
     if (subscription) await subscription.unsubscribe();
     return { permissionBlocked: true, serverTokenRemoved: Boolean(token) };
@@ -185,12 +201,95 @@ async function disable() {
     await messaging.deleteToken(messageClient);
   }
   localStorage.removeItem(tokenKey);
+  localStorage.removeItem(deviceLabelStorageKey(user.uid));
+  localStorage.setItem(enabledStorageKey(user.uid), 'false');
   return { permissionBlocked: false, serverTokenRemoved: Boolean(token) };
+}
+
+async function syncDeviceStatus() {
+  const { app, auth, messaging, functions } = await sdk();
+  const user = auth.getAuth(app).currentUser;
+  if (!user || typeof Notification === 'undefined') return null;
+  const enabledKey = enabledStorageKey(user.uid);
+  const tokenKey = tokenStorageKey(user.uid);
+  const labelKey = deviceLabelStorageKey(user.uid);
+  const wasEnabled = localStorage.getItem(enabledKey) === 'true';
+  if (localStorage.getItem(enabledKey) === 'false') return false;
+  const clearLocalRegistration = async () => {
+    localStorage.setItem(enabledKey, 'false');
+    localStorage.removeItem(tokenKey);
+    localStorage.removeItem(labelKey);
+    try {
+      if (await messaging.isSupported()) await messaging.deleteToken(messaging.getMessaging(app));
+    } catch (error) {
+      console.info('Local push registration could not be cleared.', error?.code || 'unavailable');
+    }
+    return wasEnabled;
+  };
+
+  if (Notification.permission !== 'granted') {
+    const staleToken = localStorage.getItem(tokenKey);
+    if (staleToken) {
+      try {
+        const unregister = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'unregisterPushToken');
+        await unregister({ token: staleToken });
+      } catch (error) {
+        console.info('Stale server push registration could not be removed.', error?.code || 'unavailable');
+      }
+    }
+    return clearLocalRegistration();
+  }
+  if (!await messaging.isSupported()) {
+    return clearLocalRegistration();
+  }
+  const registration = await navigator.serviceWorker.getRegistration('/');
+  if (!registration) return clearLocalRegistration();
+  const token = localStorage.getItem(tokenKey) || await messaging.getToken(messaging.getMessaging(app), {
+    vapidKey: firebaseConfig.webPushVapidKey,
+    serviceWorkerRegistration: registration,
+  });
+  if (!token) return clearLocalRegistration();
+  const list = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'listPushDevices');
+  const response = await list();
+  const currentDeviceId = await tokenId(token);
+  const isRegistered = (response.data?.devices || []).some(device => device.id === currentDeviceId);
+  if (!isRegistered) return clearLocalRegistration();
+  localStorage.setItem(tokenKey, token);
+  localStorage.setItem(enabledKey, 'true');
+  return !wasEnabled;
+}
+
+async function removeDevice(deviceId) {
+  if (typeof deviceId !== 'string' || !/^[a-f0-9]{64}$/.test(deviceId)) {
+    throw new Error('Enhetens ID är ogiltigt. Uppdatera listan och försök igen.');
+  }
+  const { app, auth, messaging, functions } = await sdk();
+  const user = auth.getAuth(app).currentUser;
+  if (!user) throw new Error('Logga in för att ta bort en enhet.');
+  const remove = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'removePushDevice');
+  await remove({ deviceId });
+
+  let isCurrentDevice = false;
+  const currentToken = localStorage.getItem(tokenStorageKey(user.uid));
+  if (currentToken && await tokenId(currentToken) === deviceId) {
+    isCurrentDevice = true;
+    localStorage.removeItem(tokenStorageKey(user.uid));
+    localStorage.removeItem(deviceLabelStorageKey(user.uid));
+    localStorage.setItem(enabledStorageKey(user.uid), 'false');
+    try {
+      if (await messaging.isSupported()) await messaging.deleteToken(messaging.getMessaging(app));
+    } catch (error) {
+      console.info('Removed server registration; local push cleanup will retry later.', error?.code || 'unavailable');
+    }
+  }
+  return { isCurrentDevice };
 }
 
 window.FordonsmappenPush = {
   enable,
   disable,
+  removeDevice,
+  syncDeviceStatus,
   async listDevices() {
     try {
       await refreshCurrentDeviceLabel();
