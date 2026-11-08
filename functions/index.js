@@ -911,7 +911,7 @@ export const unregisterPushToken = onCall(async request => {
 });
 
 export const sendDueReminderNotifications = onSchedule({
-  schedule: '0 9-11 * * *',
+  schedule: '0 7-9 * * *',
   timeZone: 'Europe/Stockholm',
   timeoutSeconds: 540,
   region: 'europe-west1',
