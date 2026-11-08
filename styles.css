@@ -153,9 +153,9 @@
 /* Move the empty-history action slightly to the right */
 .history-empty .btn{margin-left:18px}
 @media(max-width:760px){.history-empty .btn{margin-left:0}}
-.reminder-row.notification-highlight{border-color:#d4a62f;background:#fff8df;box-shadow:0 0 0 3px #d4a62f55;animation:reminder-highlight-pulse 1s ease-in-out 3}
-[data-theme="dark"].reminder-row.notification-highlight{border-color:#e7bd55;background:#3a321d;box-shadow:0 0 0 3px #e7bd5555}
-@keyframes reminder-highlight-pulse{50%{box-shadow:0 0 0 6px #d4a62f22}}
+.reminder-row.notification-highlight{border-color:#9aafc7;background:#edf3f9;box-shadow:0 0 0 3px #829ab644;animation:reminder-highlight-pulse 1s ease-in-out 3}
+[data-theme="dark"] .reminder-row.notification-highlight{border-color:#7893b2;background:#26394f;box-shadow:0 0 0 3px #7893b255}
+@keyframes reminder-highlight-pulse{50%{box-shadow:0 0 0 6px #829ab622}}
 @media(prefers-reduced-motion:reduce){.reminder-row.notification-highlight{animation:none}}
 
 .email-verified-badge{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:7px 13px;border:1px solid #cfe0d4;border-radius:999px;background:#edf5ef;color:#28523b;font-size:12px;font-weight:700;white-space:nowrap}
