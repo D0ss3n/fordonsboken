@@ -201,3 +201,5 @@
 .settings-accordion-content[hidden]{display:none!important}
 [data-theme="dark"] .settings-accordion-trigger:hover{color:#d9e8ff}
 @media(prefers-reduced-motion:reduce){.settings-accordion-chevron{transition:none}}.account-profile-embedded{margin:0;padding:0;border:0;background:transparent}
+.cost-year-control{display:flex;align-items:center;gap:10px;margin:18px 0 12px}.cost-year-control label{font-size:13px;font-weight:700}.cost-year-control select{min-width:110px;border:1px solid var(--line);border-radius:9px;padding:9px 12px;background:white;color:var(--ink)}.reminder-actions,.tire-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.tile .tire-actions{margin-top:14px}.tile .ico .nav-icon{width:22px;height:22px}.problem-list-heading{margin:20px 0 10px}.problem-history{margin-top:28px;padding-top:8px;border-top:1px solid var(--line)}.problem-history .section-row{margin-bottom:12px}
+[data-theme="dark"] .cost-year-control select{background:#1a2633;color:#edf2f7;border-color:#405268}
