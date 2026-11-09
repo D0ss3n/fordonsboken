@@ -200,4 +200,4 @@
 .settings-accordion-content{padding-top:8px}
 .settings-accordion-content[hidden]{display:none!important}
 [data-theme="dark"] .settings-accordion-trigger:hover{color:#d9e8ff}
-@media(prefers-reduced-motion:reduce){.settings-accordion-chevron{transition:none}}
+@media(prefers-reduced-motion:reduce){.settings-accordion-chevron{transition:none}}.account-profile-embedded{margin:0;padding:0;border:0;background:transparent}
