@@ -38,7 +38,7 @@
     if (checking || !navigator.onLine || document.visibilityState === 'hidden') return;
     checking = true;
     try {
-      const url = new URL('/index.html', location.origin);
+      const url = new URL('/', location.origin);
       url.searchParams.set('version-check', String(Date.now()));
       const response = await fetch(url, { cache: 'no-store', credentials: 'same-origin' });
       if (!response.ok) return;
