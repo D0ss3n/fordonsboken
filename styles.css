@@ -186,7 +186,7 @@
 
 [data-theme="dark"] .mobile-nav button.active{color:#e7f1ff;background:#304d70;border-radius:12px}
 
-.overlay.modal-confirmation{z-index:11}
+.overlay.modal-confirmation{z-index:200}
 
 .profile-transfer-guide{scroll-margin-top:24px;transition:border-color .2s,box-shadow .2s}.profile-transfer-guide.transfer-guide-highlight{border-color:#4f78ad;box-shadow:0 0 0 3px rgba(79,120,173,.24),0 12px 32px rgba(23,39,63,.14)}[data-theme="dark"] .profile-transfer-guide.transfer-guide-highlight{border-color:#82a9df;box-shadow:0 0 0 3px rgba(130,169,223,.28),0 12px 32px rgba(0,0,0,.26)}@media(prefers-reduced-motion:reduce){.profile-transfer-guide{transition:none}}
 
