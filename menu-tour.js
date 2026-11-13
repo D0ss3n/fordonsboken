@@ -12,7 +12,7 @@
     ['Däck', 'Håll reda på dina däckuppsättningar, mönsterdjup och när de köptes.'],
     ['Profil', 'Välj vad som ska visas i din publika fordonsprofil och hantera delning.'],
     ['Fordon', 'Lägg till och byt mellan fordon. Här hittar du också överlämning till en ny ägare.'],
-    ['Inställningar', 'Hantera konto, utseende, pushenheter, export och dina uppgifter. Efter guiden hittar du Menyguide längst ned i Inställningar. Öppna kategorin och välj Visa menyguide när du vill gå igenom den igen.']
+    ['Inställningar', 'Hantera konto, utseende, pushenheter, export och dina uppgifter. Efter guiden hittar du Menyguide längst ned i Inställningar.']
   ];
   let active = false;
   let index = 0;
