@@ -12,7 +12,7 @@
     ['Däck', 'Håll reda på dina däckuppsättningar, mönsterdjup och när de köptes.'],
     ['Profil', 'Välj vad som ska visas i din publika fordonsprofil och hantera delning.'],
     ['Fordon', 'Lägg till och byt mellan fordon. Här hittar du också överlämning till en ny ägare.'],
-    ['Inställningar', 'Hantera konto, utseende, pushenheter, export och dina uppgifter.']
+    ['Inställningar', 'Hantera konto, utseende, pushenheter, export och dina uppgifter. Du kan öppna menyguiden igen när du vill härifrån: Inställningar → Menyguide → Visa menyguide.']
   ];
   let active = false;
   let index = 0;
@@ -27,13 +27,24 @@
 
   function ensureReplayButton() {
     const heading = document.querySelector('.main .page-title');
-    if (!heading || heading.textContent.trim() !== 'Inställningar' || document.querySelector('[data-menu-tour-start]')) return;
+    if (!heading || heading.textContent.trim() !== 'Inställningar' || document.querySelector('.menu-tour-replay-panel')) return;
+    const panel = document.createElement('section');
+    panel.className = 'panel menu-tour-replay-panel';
+    panel.setAttribute('aria-labelledby', 'menu-tour-replay-title');
+    const title = document.createElement('h3');
+    title.id = 'menu-tour-replay-title';
+    title.textContent = 'Menyguide';
+    const description = document.createElement('p');
+    description.className = 'muted';
+    description.textContent = 'Gå igenom menyens kategorier igen när du vill.';
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'btn outline small menu-tour-replay';
+    button.className = 'btn outline small';
     button.dataset.menuTourStart = '';
     button.textContent = 'Visa menyguide';
-    heading.insertAdjacentElement('afterend', button);
+    panel.append(title, description, button);
+    const subtitle = heading.nextElementSibling?.classList.contains('subline') ? heading.nextElementSibling : heading;
+    subtitle.insertAdjacentElement('afterend', panel);
   }
 
   function makeCard() {
@@ -135,6 +146,10 @@
     if (event.target.closest('[data-menu-tour-close], [data-menu-tour-skip]')) {
       finish();
     } else if (event.target.closest('[data-menu-tour-next]')) {
+      const isFinalStep = index === steps.length - 1;
+      if (isFinalStep && document.querySelector('.main .page-title')?.textContent.trim() !== 'Inställningar') {
+        navTarget('Inställningar')?.click();
+      }
       index += 1;
       if (index >= steps.length) finish();
       else showStep();
