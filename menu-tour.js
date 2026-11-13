@@ -12,7 +12,7 @@
     ['Däck', 'Håll reda på dina däckuppsättningar, mönsterdjup och när de köptes.'],
     ['Profil', 'Välj vad som ska visas i din publika fordonsprofil och hantera delning.'],
     ['Fordon', 'Lägg till och byt mellan fordon. Här hittar du också överlämning till en ny ägare.'],
-    ['Inställningar', 'Hantera konto, utseende, pushenheter, export och dina uppgifter. Du kan öppna menyguiden igen när du vill härifrån: Inställningar → Menyguide → Visa menyguide.']
+    ['Inställningar', 'Hantera konto, utseende, pushenheter, export och dina uppgifter. Efter guiden hittar du Menyguide längst ned i Inställningar. Öppna kategorin och välj Visa menyguide när du vill gå igenom den igen.']
   ];
   let active = false;
   let index = 0;
@@ -23,28 +23,6 @@
   function navTarget(name) {
     return Array.from(document.querySelectorAll('.sidebar [data-page]'))
       .find(button => button.dataset.page === name);
-  }
-
-  function ensureReplayButton() {
-    const heading = document.querySelector('.main .page-title');
-    if (!heading || heading.textContent.trim() !== 'Inställningar' || document.querySelector('.menu-tour-replay-panel')) return;
-    const panel = document.createElement('section');
-    panel.className = 'panel menu-tour-replay-panel';
-    panel.setAttribute('aria-labelledby', 'menu-tour-replay-title');
-    const title = document.createElement('h3');
-    title.id = 'menu-tour-replay-title';
-    title.textContent = 'Menyguide';
-    const description = document.createElement('p');
-    description.className = 'muted';
-    description.textContent = 'Gå igenom menyens kategorier igen när du vill.';
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'btn outline small';
-    button.dataset.menuTourStart = '';
-    button.textContent = 'Visa menyguide';
-    panel.append(title, description, button);
-    const subtitle = heading.nextElementSibling?.classList.contains('subline') ? heading.nextElementSibling : heading;
-    subtitle.insertAdjacentElement('afterend', panel);
   }
 
   function makeCard() {
@@ -150,6 +128,10 @@
       if (isFinalStep && document.querySelector('.main .page-title')?.textContent.trim() !== 'Inställningar') {
         navTarget('Inställningar')?.click();
       }
+      if (isFinalStep) {
+        Array.from(document.querySelectorAll('.settings-accordion-trigger'))
+          .find(button => button.textContent.trim() === 'Menyguide')?.click();
+      }
       index += 1;
       if (index >= steps.length) finish();
       else showStep();
@@ -157,7 +139,6 @@
   }, true);
 
   function inspectApp() {
-    ensureReplayButton();
     if (!active && !localStorage.getItem(SEEN_KEY) && document.querySelector('.app-shell')) {
       localStorage.setItem(SEEN_KEY, 'pending');
       window.setTimeout(() => {
