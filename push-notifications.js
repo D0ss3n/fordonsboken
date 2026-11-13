@@ -159,6 +159,7 @@ async function enable() {
   const uid = auth.getAuth(app).currentUser.uid;
   localStorage.setItem(tokenStorageKey(uid), token);
   localStorage.setItem(deviceLabelStorageKey(uid), label);
+  localStorage.setItem(enabledStorageKey(uid), 'true');
 
   listenForForegroundMessages(messaging, messageClient);
   return true;

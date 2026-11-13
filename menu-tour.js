@@ -26,9 +26,8 @@
   }
 
   function ensureReplayButton() {
-    const settingsActive = document.querySelector('.sidebar [data-page="Inställningar"].active');
     const heading = document.querySelector('.main .page-title');
-    if (!settingsActive || !heading || document.querySelector('[data-menu-tour-start]')) return;
+    if (!heading || heading.textContent.trim() !== 'Inställningar' || document.querySelector('[data-menu-tour-start]')) return;
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'btn outline small menu-tour-replay';
