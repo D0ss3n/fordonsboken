@@ -18,6 +18,7 @@
   let index = 0;
   let card;
   let target;
+  let backdrop;
 
   function navTarget(name) {
     return Array.from(document.querySelectorAll('.sidebar [data-page]'))
@@ -53,11 +54,20 @@
     if (narrow) {
       card.style.left = '12px';
       card.style.right = '12px';
-      card.style.top = 'auto';
-      card.style.bottom = 'calc(76px + env(safe-area-inset-bottom))';
+      card.style.bottom = 'auto';
+      const height = card.offsetHeight;
+      const topCandidate = bounds.top - height - 16;
+      const bottomCandidate = bounds.bottom + 16;
+      if (topCandidate >= 12) {
+        card.style.top = `${topCandidate}px`;
+      } else if (bottomCandidate + height <= window.innerHeight - 76) {
+        card.style.top = `${bottomCandidate}px`;
+      } else {
+        card.style.top = `${Math.max(12, Math.min(bounds.top - height / 2, window.innerHeight - height - 20))}px`;
+      }
     } else {
       const left = Math.min(Math.max(250, bounds.right + 18), window.innerWidth - 360);
-      const top = Math.min(Math.max(16, bounds.top - 12), window.innerHeight - card.offsetHeight - 16);
+      const top = Math.min(Math.max(16, bounds.top + bounds.height / 2 - card.offsetHeight / 2), window.innerHeight - card.offsetHeight - 16);
       card.style.left = `${left}px`;
       card.style.right = 'auto';
       card.style.top = `${top}px`;
@@ -88,6 +98,8 @@
     target = null;
     card?.remove();
     card = null;
+    backdrop?.remove();
+    backdrop = null;
     localStorage.setItem(SEEN_KEY, '1');
     document.querySelector('.app-shell')?.classList.remove('menu-tour-open');
     document.removeEventListener('keydown', onKeydown);
@@ -102,6 +114,12 @@
     active = true;
     index = 0;
     document.querySelector('.app-shell')?.classList.add('menu-tour-open');
+    backdrop = document.createElement('button');
+    backdrop.type = 'button';
+    backdrop.className = 'menu-tour-backdrop';
+    backdrop.setAttribute('aria-label', 'Stäng menyguide');
+    backdrop.addEventListener('click', finish);
+    document.body.appendChild(backdrop);
     makeCard();
     document.addEventListener('keydown', onKeydown);
     showStep();
