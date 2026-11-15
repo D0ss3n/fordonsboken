@@ -144,27 +144,45 @@ async function enable() {
   const [{ app, auth, messaging, functions }, serviceWorkerRegistration] = await Promise.all([
     sdk(), navigator.serviceWorker.register('/firebase-messaging-sw.js'),
   ]);
-  if (!auth.getAuth(app).currentUser) throw new Error('Logga in innan du aktiverar telefonnotiser.');
+  const user = auth.getAuth(app).currentUser;
+  if (!user) throw new Error('Logga in innan du aktiverar telefonnotiser.');
   if (!await messaging.isSupported()) throw new Error('Firebase-notiser stöds inte i den här webbläsaren.');
+
   const messageClient = messaging.getMessaging(app);
-  const token = await messaging.getToken(messageClient, {
+  const functionsClient = functions.getFunctions(app, 'europe-north1');
+  const tokenOptions = {
     vapidKey: firebaseConfig.webPushVapidKey,
     serviceWorkerRegistration,
-  });
+  };
+  const previousToken = localStorage.getItem(tokenStorageKey(user.uid))
+    || await messaging.getToken(messageClient, tokenOptions).catch(() => null);
+
+  // Re-enable with a fresh browser push subscription. FCM can invalidate a token
+  // while the app is closed, so reusing the cached token would register the same
+  // dead subscription again.
+  if (previousToken) {
+    try {
+      const unregister = functions.httpsCallable(functionsClient, 'unregisterPushToken');
+      await unregister({ token: previousToken });
+    } catch (error) {
+      console.info('Previous push registration could not be removed before renewal.', error?.code || 'unavailable');
+    }
+  }
+  await messaging.deleteToken(messageClient);
+
+  const token = await messaging.getToken(messageClient, tokenOptions);
   if (!token) throw new Error('Webbläsaren kunde inte registreras för notiser.');
 
-  const callable = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'registerPushToken');
+  const callable = functions.httpsCallable(functionsClient, 'registerPushToken');
   const label = await deviceLabel();
   await callable({ token, deviceLabel: label });
-  const uid = auth.getAuth(app).currentUser.uid;
-  localStorage.setItem(tokenStorageKey(uid), token);
-  localStorage.setItem(deviceLabelStorageKey(uid), label);
-  localStorage.setItem(enabledStorageKey(uid), 'true');
+  localStorage.setItem(tokenStorageKey(user.uid), token);
+  localStorage.setItem(deviceLabelStorageKey(user.uid), label);
+  localStorage.setItem(enabledStorageKey(user.uid), 'true');
 
   listenForForegroundMessages(messaging, messageClient);
   return true;
 }
-
 async function disable() {
   const { app, auth, messaging, functions } = await sdk();
   const user = auth.getAuth(app).currentUser;
