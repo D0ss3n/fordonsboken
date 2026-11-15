@@ -5,21 +5,21 @@
   <linearGradient id="tire" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#44534d"/><stop offset=".55" stop-color="#121a17"/><stop offset="1" stop-color="#394840"/></linearGradient>
 </defs>
 <ellipse cx="180" cy="158" rx="148" ry="10" fill="#526a60" opacity=".22"/>
-<path d="M27 127 31 106q2-9 13-13l34-9 26-28q8-9 21-9h109q14 0 23 10l28 28 29 8q12 4 15 16l5 17-2 10q-1 6-8 6h-17a31 31 0 0 0-61 0H116a31 31 0 0 0-62 0H36q-9 0-9-8Z" fill="url(#carPaint)" stroke="#17452f" stroke-width="5" stroke-linejoin="round"/>
+<path d="M27 127 31 106q2-9 13-13l34-9 26-28q8-9 21-9h109q14 0 23 10q12 0 18 10l3 25h31q10 0 13 14l1 27-1 9q-1 6-8 6h-17a31 31 0 0 0-61 0H116a31 31 0 0 0-62 0H36q-9 0-9-8Z" fill="url(#carPaint)" stroke="#17452f" stroke-width="5" stroke-linejoin="round"/>
 <path d="m80 84 25-27q7-8 19-8h37v36H78Z" fill="url(#carGlass)" stroke="#17452f" stroke-width="4" stroke-linejoin="round"/>
 <path d="M166 49h48q12 0 20 9l22 27h-90Z" fill="url(#carGlass)" stroke="#17452f" stroke-width="4" stroke-linejoin="round"/>
-<path d="M227 50q12 1 19 9l21 26h-34Z" fill="#74cadb" stroke="#17452f" stroke-width="4" stroke-linejoin="round"/>
+<path d="M227 50q12 1 19 9l17 26h-36Z" fill="#74cadb" stroke="#17452f" stroke-width="4" stroke-linejoin="round"/>
 <path d="M162 49v36m68-35v35m-151 0h210" fill="none" stroke="#17452f" stroke-width="4"/>
 <path d="M93 91v31m71-37v36m70-31v31" fill="none" stroke="#187a43" stroke-width="2" opacity=".8"/>
 <path d="M134 98h17m68 0h17" stroke="#12633a" stroke-width="3" stroke-linecap="round"/>
 <path d="M33 100q10-5 21 0l-1 9H31q-3-5 2-9Z" fill="#fff4bf" stroke="#17452f" stroke-width="2.5"/>
 <path d="M33 112h14v13H32Z" fill="#17382c" stroke="#17452f" stroke-width="2"/>
 <path d="M37 114v9m5-9v9" stroke="#afc9bc" stroke-width="1.5"/>
-<path d="M317 97q7 1 11 8v15h-13V101q0-3 2-4Z" fill="#ff686d" stroke="#17452f" stroke-width="2.5"/>
-<path d="M319 101h5" stroke="#ffd9a3" stroke-width="2.5" stroke-linecap="round"/>
-<path d="M28 127h13m286 0h8" stroke="#d9e6df" stroke-width="3" stroke-linecap="round"/>
+<path d="M313 97q6 1 9 8v15h-11V101q0-3 2-4Z" fill="#ff686d" stroke="#17452f" stroke-width="2.5"/>
+<path d="M314 101h5" stroke="#ffd9a3" stroke-width="2.5" stroke-linecap="round"/>
+<path d="M28 127h13m279 0h8" stroke="#d9e6df" stroke-width="3" stroke-linecap="round"/>
 <path d="M50 133h16m212 0h34" stroke="#0f6b39" stroke-width="4" stroke-linecap="round"/>
-<path d="M117 49l-24 35m72-35v36m68-35 28 35" fill="none" stroke="#17452f" stroke-width="3"/>
+<path d="M117 49l-24 35m72-35v36m68-35 18 25m27 3v45" fill="none" stroke="#17452f" stroke-width="3"/>
 <circle cx="85" cy="137" r="29" fill="url(#tire)" stroke="#101815" stroke-width="3"/>
 <circle cx="85" cy="137" r="18" fill="#dce7df" stroke="#74877d" stroke-width="4"/>
 <circle cx="85" cy="137" r="8" fill="#7e9288"/>
