@@ -7,6 +7,7 @@ const authSdkUrl = `https://www.gstatic.com/firebasejs/${sdkVersion}/firebase-au
 const functionsSdkUrl = `https://www.gstatic.com/firebasejs/${sdkVersion}/firebase-functions.js`;
 let messagingSdkPromise;
 let foregroundListenerReady = false;
+let deviceStatusSyncPromise;
 
 function tokenStorageKey(uid) {
   return `fordonsmappen.push.token.${uid}`;
@@ -226,6 +227,16 @@ async function disable() {
 }
 
 async function syncDeviceStatus() {
+  if (deviceStatusSyncPromise) return deviceStatusSyncPromise;
+  deviceStatusSyncPromise = syncDeviceStatusOnce();
+  try {
+    return await deviceStatusSyncPromise;
+  } finally {
+    deviceStatusSyncPromise = null;
+  }
+}
+
+async function syncDeviceStatusOnce() {
   const { app, auth, messaging, functions } = await sdk();
   const user = auth.getAuth(app).currentUser;
   if (!user || typeof Notification === 'undefined') return null;
@@ -261,21 +272,68 @@ async function syncDeviceStatus() {
   if (!await messaging.isSupported()) {
     return clearLocalRegistration();
   }
-  const registration = await navigator.serviceWorker.getRegistration('/');
-  if (!registration) return clearLocalRegistration();
-  const token = localStorage.getItem(tokenKey) || await messaging.getToken(messaging.getMessaging(app), {
+  let registration = await navigator.serviceWorker.getRegistration('/');
+  if (!registration) {
+    if (!wasEnabled) return clearLocalRegistration();
+    registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+  }
+  const messageClient = messaging.getMessaging(app);
+  const previousToken = localStorage.getItem(tokenKey);
+  let token = await messaging.getToken(messageClient, {
     vapidKey: firebaseConfig.webPushVapidKey,
     serviceWorkerRegistration: registration,
   });
-  if (!token) return clearLocalRegistration();
+  // Keep a previously enabled device enabled during temporary FCM/network
+  // failures. The next app visit will retry synchronization.
+  if (!token) return wasEnabled ? false : clearLocalRegistration();
   const list = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'listPushDevices');
   const response = await list();
   const currentDeviceId = await tokenId(token);
   const isRegistered = (response.data?.devices || []).some(device => device.id === currentDeviceId);
-  if (!isRegistered) return clearLocalRegistration();
+  if (!isRegistered) {
+    if (!wasEnabled) return clearLocalRegistration();
+
+    // The scheduler removes tokens rejected by FCM. When that happens, the
+    // browser can still return its cached dead token. Rotate it silently (the
+    // user has already granted notification permission) and register the new
+    // token so the app does not leave this device marked inactive.
+    if (previousToken && previousToken === token) {
+      await messaging.deleteToken(messageClient);
+      token = await messaging.getToken(messageClient, {
+        vapidKey: firebaseConfig.webPushVapidKey,
+        serviceWorkerRegistration: registration,
+      });
+    } else if (previousToken && previousToken !== token) {
+      try {
+        const unregister = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'unregisterPushToken');
+        await unregister({ token: previousToken });
+      } catch (error) {
+        console.info('Previous push registration could not be removed during renewal.', error?.code || 'unavailable');
+      }
+    }
+    if (!token) return false;
+    const label = await deviceLabel();
+    const register = functions.httpsCallable(functions.getFunctions(app, 'europe-north1'), 'registerPushToken');
+    await register({ token, deviceLabel: label });
+    localStorage.setItem(tokenKey, token);
+    localStorage.setItem(labelKey, label);
+    localStorage.setItem(enabledKey, 'true');
+    return true;
+  }
   localStorage.setItem(tokenKey, token);
   localStorage.setItem(enabledKey, 'true');
   return !wasEnabled;
+}
+
+async function syncEnabledDeviceIfSignedIn() {
+  if (!window.FordonsmappenFirebase?.configured) return;
+  try {
+    const { app, auth } = await sdk();
+    if (!auth.getAuth(app).currentUser) return;
+    await syncDeviceStatus();
+  } catch (error) {
+    console.info('Push registration will retry on the next app visit.', error?.code || 'unavailable');
+  }
 }
 
 async function removeDevice(deviceId) {
@@ -326,6 +384,16 @@ window.FordonsmappenPush = {
 };
 window.dispatchEvent(new CustomEvent('fordonsmappen-push-ready'));
 window.addEventListener('fordonsmappen-firebase-ready', event => {
-  if (event.detail?.configured) attachForegroundListener();
+  if (event.detail?.configured) {
+    attachForegroundListener();
+    syncEnabledDeviceIfSignedIn();
+  }
 });
+window.addEventListener('fordonsmappen-auth', event => {
+  if (event.detail?.user) syncEnabledDeviceIfSignedIn();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') syncEnabledDeviceIfSignedIn();
+});
+window.setInterval(syncEnabledDeviceIfSignedIn, 15 * 60 * 1000);
 if (window.FordonsmappenFirebase?.configured) attachForegroundListener();
