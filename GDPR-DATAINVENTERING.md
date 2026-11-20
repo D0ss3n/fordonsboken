@@ -3,7 +3,7 @@
 **Status:** intern behandlingsinventering med preliminära verksamhetsbeslut; inte en färdig integritetspolicy eller juridisk bedömning.
 **Inventerad:** 2026-10-26
 
-**Senast uppdaterad:** 2026-11-09 (registreringsnummeruppslag och statusrättning)
+**Senast uppdaterad:** 2026-11-20 (konsolkontroller och operativ handläggning)
 **Omfattning:** källkod, Firebase-konfiguration och dokumenterade manuella kontroller i testkonton och Google Cloud Console. Publicerade Firestore- och Storage-regler jämfördes med repo-filerna och uppdaterades 2026-10-15. Kontoexport, kontoradering och schemalagd gallring har provats i Firebase-projektet `fordonsmappen-af27a`; resultat och begränsningar dokumenteras nedan. Firestore-återställning till en separat testdatabas gjordes 2026-10-24. Storage-backupen i det separata projektet `fordonsmappen-backup-af27a` konfigurerades därefter med daglig synk, versionshantering och gallring; ett objekt återställdes till en separat testbucket och öppnades. En felavisering för synkjobbet har aktiverats. IAM- och loggkontroller nedan är daterade ögonblicksbilder, inte en ny fullständig kontroll av alla effektiva eller ärvda behörigheter. Faktiska Google-/GitHub-avtal, ärvda IAM-behörigheter, loggar på organisations-/mappnivå, GitHub-loggar och vissa leverantörsvillkor är fortfarande inte verifierade.
 
 Enligt GDPR artikel 30 ska den personuppgiftsansvariges register bland annat beskriva ändamål, kategorier av registrerade och uppgifter, mottagare, eventuella tredjelandsöverföringar, raderingsfrister och säkerhetsåtgärder. Detta dokument kartlägger kodens nuläge och lämnar öppna beslut tydligt markerade. Se [GDPR artikel 30 hos EUR-Lex](https://eur-lex.europa.eu/eli/reg/2016/679/oj?locale=sv) och [IMY:s vägledning om register över behandling](https://www.imy.se/verksamhet/dataskydd/det-har-galler-enligt-gdpr/fora-register-over-behandling/).
@@ -156,6 +156,42 @@ Detta är ett behandlingsförslag utifrån kodflödet, inte en slutlig juridisk 
 | Invändning/begränsning | Ingen särskild funktion hittad | Process och kontaktväg saknas. |
 
 GDPR ger rättigheter som tillgång, rättelse, radering och i vissa fall dataportabilitet; de gäller med förutsättningar och undantag. Detta dokument avgör inte enskilda juridiska begäranden. Se [GDPR artiklarna 15–20](https://eur-lex.europa.eu/eli/reg/2016/679/oj?locale=sv).
+
+### Intern rutin för integritetsbegäranden
+
+Den här rutinen är ett operativt minimum tills en fullständig process har beslutats. Den utlovar inte att varje begäran alltid ska bifallas.
+
+1. Ta emot begäran på den publicerade kontaktadressen `william@doss.se`. Registrera mottagningsdatum, begärd åtgärd och kontaktväg i en åtkomstbegränsad ärendelogg. Lägg inte in onödiga personuppgifter eller kopior av ID-handlingar i loggen.
+2. Bekräfta mottagandet och kontrollera identiteten proportionerligt innan konto- eller fordonsdata lämnas ut eller ändras. Be om komplettering via samma kontaktväg vid rimligt tvivel; samla inte mer identitetsdata än vad kontrollen kräver.
+3. Sök i Firebase Authentication, Firestore, Storage, publika delningsprofiler, kontoexporter och relevanta backupkopior. Kontrollera om fordonet har andra aktiva medlemmar och om en begäran gäller uppgifter som kan röra en annan person.
+4. Bedöm begäran och eventuella undantag innan åtgärd. Vid rättelse/radering i aktiva system, kontrollera även lokala synkflöden och den separata Storage-backupens fördröjda gallring. Dokumentera vad som ändrats, vad som eventuellt behålls och varför, utan att lägga känsliga detaljer i ärendelogg.
+5. Svara utan onödigt dröjsmål och inom tillämplig tidsfrist. Om svarstiden behöver förlängas eller begäran inte kan tillmötesgås, dokumentera och meddela skälet enligt gällande regler. Stäm vid behov av med juridiskt kunnig rådgivare innan beslut.
+6. Stäng ärendet först när åtgärd, svar och eventuell gallring i aktiva system/backup är dokumenterade. Begränsa åtkomst till ärendelogg och gallra den enligt en beslutad, separat frist.
+
+**Avsedd ägare:** William ansvarar för handläggningen. Det är ännu inte verifierat att kontaktadressen bevakas. Innan bred lansering ska adressen verifieras som bevakad, en säker ärendelogg och gallringsfrist beslutas, och proceduren provas med en intern testbegäran. Denna rutin är inte en juridisk bedömning eller ett löfte om att radering ur säkerhetskopior sker omedelbart.
+
+## Konsolkontroller 2026-11-20 och kvarstående åtgärder
+
+Följande är observationer i Google Cloud Console vid kontrollen den 20 november 2026; de gäller inte automatiskt ärvda organisations-/mapproller, alla objekt-ACL:er eller leverantörers interna åtkomst.
+
+| Resurs | Verifierat vid kontrollen | Åtgärd eller begränsning |
+|---|---|---|
+| Produktions-Firestore `fordonsmappen-af27a` | `(default)` är aktivt i `europe-north2`; dagliga schemalagda backuper är aktiverade. | 84 dagars retention enligt tidigare inventering. Behåll åtkomst begränsad och dokumentera återläsning/radering i backuper. |
+| Databas `restore-check-20261024` | Separat återställningsdatabas finns fortfarande aktiv. Den innehåller `users`- och `vehicles`-samlingar. En användarpost i kopian hade ett dokument-ID som inte syntes bland produktionsdatabasens fem synliga användardokument. Konsolen angav att själva användardokumentet saknas, men visade underkollektioner. | Kopian kan innehålla unika uppgifter och ska inte raderas innan en fullständig jämförelse och ett uttryckligt beslut. Denna kontroll jämförde endast synliga samlings-/dokument-ID:n, inte alla dokument eller fält. |
+| Källbucket `fordonsmappen-af27a.firebasestorage.app` | Soft delete-retention är 7 dagar. Bucketen använder finmaskig åtkomstkontroll/objekt-ACL, inte Uniform bucket-level access. Bucket-IAM visar projektets Editors och Owners med `Storage Legacy Bucket Owner`, projektets Viewers med `Storage Legacy Bucket Reader`, Firebase Admin SDK service agent med projektrollen `Storage Admin`, appens runtime-konto med `Storage Object Admin`, samt Storage Transfer Service med läsroller. Projektets aktuella IAM-lista visade William som ensam mänsklig principal med Owner; ingen direkt Viewer-principal syntes. Två synliga testobjekt var markerade `Not public`. | Viewer-bindingen kan ge läsåtkomst via Cloud Storage om en Viewer-principal läggs till senare. Projektrollen `Storage Admin` för Firebase Admin SDK service agent är bred; verifiera om aktiva funktioner fortfarande behöver den innan eventuell minskning. Projektlistan säger inte om mapp-/organisationsarv finns. Två testobjektsstatusar bevisar inte att alla användarobjekt saknar publik ACL. Granska befintliga objekt-ACL:er innan någon ändring. Ändra inte ACL- eller uniform-access-inställning innan effekten på Firebase Storage, driftskonton och befintliga objekt är bedömd. |
+| Backupbucket `fordonsmappen-backup-af27a-eu` i projektet `fordonsmappen-backup-af27a` | Privat; Public Access Prevention är i kraft; Uniform bucket-level access är aktiverat; Object Versioning är på. Ingen soft-delete-retention är inställd. Icke-aktuella versioner tas bort efter 30 dagar. | Kontrollera efter 30-dagarsperioden att lifecycle faktiskt gallrar. Radering av icke-aktuell version är permanent när soft delete saknas. |
+| Backupprojektets IAM | Konsolen visade William Döss som Owner och Google Storage Transfer Service-kontot. Ingen annan vanlig användare/principal med Viewer syntes i projektets aktuella IAM-lista. | Bucketens projekt-Viewer convenience binding finns ändå som framtida behörighet om en Viewer läggs till. Granska även ärvda behörigheter och effektiva bucket-/objektroller innan slutlig slutsats. |
+
+**Ändra endast efter separat bedömning:** bucketbehörigheter kan påverka både appens åtkomst och åtkomst för Google Cloud-API:er. Använd minimala roller och kontrollera både projekt-IAM och resurs-IAM; ta inte bort Google-hanterade service-agentroller utan att först verifiera deras behov. Radera inte återställningsdatabasen förrän rätt databas är identifierad i konsolen vid raderingstillfället.
+
+### Beslut och externa underlag som saknas
+
+- Fastställ och dokumentera rättslig grund samt gallringsregel för fordons- och historikuppgifter som kan identifiera en tidigare ägare. Nuvarande neutralisering av UID och rubrik gör inte automatiskt datum, miltal eller övrig historik anonym.
+- Begär skriftlig information från RegCheck/Infinite Loop Development Ltd om deras roll, uppslagsloggar och retention, underbiträden, säkerhetsåtgärder och eventuella tredjelandsöverföringar samt lämpligt personuppgiftsbiträdesavtal/villkor. Publika API-/integritetssidor räcker inte för att fastställa detta.
+- Bekräfta att den publicerade kontaktadressen bevakas och att kontaktuppgifterna tydligt identifierar den ansvarige. Ändra inte publik identitet eller publicera efternamn utan grundarens uttryckliga beslut.
+- Granska effektiv IAM/ACL på källbucketen, befintliga objekt-ACL:er, projekt-/organisationsarv, byggkontots åtkomst, loggåtkomst och loggretention. Dokumentera datum och den faktiska konsolvy som kontrollerats.
+- Jämför återställningsdatabasen fullständigt mot produktionen med en metod som endast rapporterar antal, samlingsnamn och matchningsstatus utan att exponera personuppgiftsinnehåll. Bevara kopian tills unika poster och eventuellt återställningsbehov har bedömts.
+- Fastställ intern rutin och gallringsfrist för integritetsärenden samt hur raderingsbegäranden tillämpas på Storage-backup före återställning.
 
 ## Leverantörer, mottagare och geografisk plats
 
