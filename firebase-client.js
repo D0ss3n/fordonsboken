@@ -448,18 +448,29 @@ if (!configured) {
       const migrationComplete = marker.exists()
         && marker.data().schemaVersion === 2
         && marker.data().complete === true;
-      const preferences = migrationComplete
-        ? await firestoreSdk.getDoc(docRef(`users/${uid}/appData/preferences-v2`))
-        : null;
-      const fallbackState = {
-        ...(legacy?.state || {}),
-        ...(preferences?.exists() ? preferences.data().state || {} : {}),
-      };
-
       if (migrationComplete) {
+        // Fetch account preferences alongside the vehicle collections so login
+        // does not wait for an avoidable extra Firestore round trip.
+        const [preferences, vehicleState] = await Promise.all([
+          firestoreSdk.getDoc(docRef(`users/${uid}/appData/preferences-v2`)),
+          readVehicleModelV2(uid, legacy?.state || {}),
+        ]);
+        const preferenceState = preferences.exists() ? preferences.data().state || {} : {};
+        const selectedVehicle = preferenceState.active || legacy?.state?.active || vehicleState.active;
         return {
           ...(legacy || { schemaVersion: 1 }),
-          state: await readVehicleModelV2(uid, fallbackState),
+          state: {
+            ...vehicleState,
+            ...preferenceState,
+            vehicles: vehicleState.vehicles,
+            events: vehicleState.events,
+            problems: vehicleState.problems,
+            reminders: vehicleState.reminders,
+            tireSets: vehicleState.tireSets,
+            active: vehicleState.vehicles.some(vehicle => vehicle.id === selectedVehicle)
+              ? selectedVehicle
+              : vehicleState.active,
+          },
           schemaVersion: 2,
         };
       }
@@ -558,8 +569,9 @@ if (!configured) {
   authSdk.onAuthStateChanged(auth, async user => {
     if (user) {
       try {
+        // Refresh verification/profile fields, but do not force an extra token
+        // round trip. Firestore refreshes an expired token when it is needed.
         await authSdk.reload(user);
-        await user.getIdToken(true);
       } catch (error) {
         console.warn('Kunde inte uppdatera autentiseringsstatusen', error);
       }

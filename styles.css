@@ -214,3 +214,5 @@
 [data-theme="dark"] .qr-stamp{color:#202b2b}
 [data-theme="dark"] .qr-stamp p{color:#5d6b66}
 [data-theme="dark"] .qr-stamp .badge{background:#edf2ed;color:#203936;border:1px solid #dce5dd}
+
+.demo-vehicle-placeholder{align-content:center;gap:8px;color:var(--navy);font-size:13px;font-weight:700}.demo-vehicle-placeholder svg{width:48px;height:48px}
