@@ -19,6 +19,12 @@
   let card;
   let target;
   let backdrop;
+  let activeSeenKey = null;
+
+  function seenKey() {
+    const uid = window.FordonsmappenFirebase?.currentUser?.()?.uid;
+    return uid ? `${SEEN_KEY}:${uid}` : `${SEEN_KEY}:local`;
+  }
 
   function navTarget(name) {
     return Array.from(document.querySelectorAll('.sidebar [data-page]'))
@@ -88,7 +94,8 @@
     card = null;
     backdrop?.remove();
     backdrop = null;
-    localStorage.setItem(SEEN_KEY, '1');
+    if (activeSeenKey) localStorage.setItem(activeSeenKey, '1');
+    activeSeenKey = null;
     document.querySelector('.app-shell')?.classList.remove('menu-tour-open');
     document.removeEventListener('keydown', onKeydown);
   }
@@ -97,9 +104,10 @@
     if (event.key === 'Escape' && active) finish();
   }
 
-  function start() {
+  function start(key = seenKey()) {
     if (active || !document.querySelector('.app-shell')) return;
     active = true;
+    activeSeenKey = key;
     index = 0;
     document.querySelector('.app-shell')?.classList.add('menu-tour-open');
     backdrop = document.createElement('button');
@@ -139,11 +147,12 @@
   }, true);
 
   function inspectApp() {
-    if (!active && !localStorage.getItem(SEEN_KEY) && document.querySelector('.app-shell')) {
-      localStorage.setItem(SEEN_KEY, 'pending');
+    const key = seenKey();
+    if (!active && !localStorage.getItem(key) && document.querySelector('.app-shell')) {
+      localStorage.setItem(key, 'pending');
       window.setTimeout(() => {
-        if (document.querySelector('.app-shell') && localStorage.getItem(SEEN_KEY) === 'pending') start();
-        else if (!document.querySelector('.app-shell')) localStorage.removeItem(SEEN_KEY);
+        if (document.querySelector('.app-shell') && seenKey() === key && localStorage.getItem(key) === 'pending') start(key);
+        else if (localStorage.getItem(key) === 'pending') localStorage.removeItem(key);
       }, 900);
     }
   }
