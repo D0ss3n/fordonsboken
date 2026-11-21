@@ -488,36 +488,40 @@ export const deleteAccountData = onCall(async request => {
   ]);
 
   const mappings = await db.collection(`users/${uid}/publicShareMappings`).get();
-  for (const mapping of mappings.docs) {
+  await Promise.all(mappings.docs.map(mapping => {
     const token = mapping.data().token;
-    if (typeof token === 'string') await db.doc(`publicVehicles/${token}`).delete();
-  }
+    return typeof token === 'string' ? db.doc(`publicVehicles/${token}`).delete() : Promise.resolve();
+  }));
 
   const removedVehicleCount = [];
-  for (const vehicleId of vehicleIds) {
-    const vehicleRef = db.doc(`vehicles/${vehicleId}`);
-    const [vehicleSnapshot, members] = await Promise.all([
-      vehicleRef.get(), vehicleRef.collection('members').get(),
-    ]);
-    const survivingMembers = members.docs.filter(doc => doc.id !== uid && doc.data().active === true);
-    if (!survivingMembers.length) {
-      for (const member of members.docs) {
-        await db.doc(`users/${member.id}/vehicleMemberships/${vehicleId}`).delete().catch(() => {});
+  const vehicleIdList = [...vehicleIds];
+  // Process a few vehicles at a time to avoid making total deletion time grow
+  // linearly while keeping Firestore/storage pressure bounded.
+  for (let offset = 0; offset < vehicleIdList.length; offset += 4) {
+    await Promise.all(vehicleIdList.slice(offset, offset + 4).map(async vehicleId => {
+      const vehicleRef = db.doc(`vehicles/${vehicleId}`);
+      const [vehicleSnapshot, members] = await Promise.all([
+        vehicleRef.get(), vehicleRef.collection('members').get(),
+      ]);
+      const survivingMembers = members.docs.filter(doc => doc.id !== uid && doc.data().active === true);
+      if (!survivingMembers.length) {
+        await Promise.all(members.docs.map(member =>
+          db.doc(`users/${member.id}/vehicleMemberships/${vehicleId}`).delete().catch(() => {}),
+        ));
+        await db.recursiveDelete(vehicleRef);
+        removedVehicleCount.push(vehicleId);
+        return;
       }
-      await db.recursiveDelete(vehicleRef);
-      removedVehicleCount.push(vehicleId);
-      continue;
-    }
 
-    const [events, problems, ownership, corrections, shareMappings] = await Promise.all([
-      vehicleRef.collection('events').where('createdByUid', '==', uid).get(),
-      vehicleRef.collection('problems').where('createdByUid', '==', uid).get(),
-      vehicleRef.collection('ownershipHistory').where('ownerUid', '==', uid).get(),
-      vehicleRef.collection('eventCorrections').where('createdByUid', '==', uid).get(),
-      db.collectionGroup('publicShareMappings').where('vehicleId', '==', vehicleId).get(),
-    ]);
-    const removedEventKeys = new Set(events.docs.map(doc => publicEventIdentity(doc.data())));
-    const updates = [
+      const [events, problems, ownership, corrections, shareMappings] = await Promise.all([
+        vehicleRef.collection('events').where('createdByUid', '==', uid).get(),
+        vehicleRef.collection('problems').where('createdByUid', '==', uid).get(),
+        vehicleRef.collection('ownershipHistory').where('ownerUid', '==', uid).get(),
+        vehicleRef.collection('eventCorrections').where('createdByUid', '==', uid).get(),
+        db.collectionGroup('publicShareMappings').where('vehicleId', '==', vehicleId).get(),
+      ]);
+      const removedEventKeys = new Set(events.docs.map(doc => publicEventIdentity(doc.data())));
+      const updates = [
       ...events.docs.map(doc => ({
         ref: doc.ref,
         data: {
@@ -534,38 +538,39 @@ export const deleteAccountData = onCall(async request => {
       ...corrections.docs.map(doc => ({ ref: doc.ref, delete: true })),
       { ref: vehicleRef.collection('members').doc(uid), delete: true },
       { ref: db.doc(`users/${uid}/vehicleMemberships/${vehicleId}`), delete: true },
-    ];
-    for (const mapping of shareMappings.docs) {
-      const token = mapping.data().token;
-      if (typeof token !== 'string') continue;
-      const publicRef = db.doc(`publicVehicles/${token}`);
-      const publicSnapshot = await publicRef.get();
-      const publicEvents = publicSnapshot.data()?.events;
-      if (!Array.isArray(publicEvents)) continue;
-      let changed = false;
-      const sanitizedEvents = publicEvents.map(event => {
-        if (!removedEventKeys.has(publicEventIdentity(event))) return event;
-        changed = true;
-        return { ...event, title: event.category };
-      });
-      if (changed) {
-        updates.push({
+      ];
+      const publicShareUpdates = await Promise.all(shareMappings.docs.map(async mapping => {
+        const token = mapping.data().token;
+        if (typeof token !== 'string') return null;
+        const publicRef = db.doc(`publicVehicles/${token}`);
+        const publicSnapshot = await publicRef.get();
+        const publicEvents = publicSnapshot.data()?.events;
+        if (!Array.isArray(publicEvents)) return null;
+        let changed = false;
+        const sanitizedEvents = publicEvents.map(event => {
+          if (!removedEventKeys.has(publicEventIdentity(event))) return event;
+          changed = true;
+          return { ...event, title: event.category };
+        });
+        if (changed) return {
           ref: publicRef,
           data: { events: sanitizedEvents, updatedAt: Timestamp.now() },
-        });
+        };
+        return null;
+      }));
+      updates.push(...publicShareUpdates.filter(Boolean));
+      if (vehicleSnapshot.exists && vehicleSnapshot.data().createdByUid === uid) {
+        updates.push({ ref: vehicleRef, data: { createdByUid: FieldValue.delete() } });
       }
-    }
-    if (vehicleSnapshot.exists && vehicleSnapshot.data().createdByUid === uid) {
-      updates.push({ ref: vehicleRef, data: { createdByUid: FieldValue.delete() } });
-    }
-    for (let offset = 0; offset < updates.length; offset += 400) {
-      const batch = db.batch();
-      for (const update of updates.slice(offset, offset + 400)) {
-        if (update.delete) batch.delete(update.ref);
-        else batch.update(update.ref, update.data);
+      for (let offset = 0; offset < updates.length; offset += 400) {
+        const batch = db.batch();
+        for (const update of updates.slice(offset, offset + 400)) {
+          if (update.delete) batch.delete(update.ref);
+          else batch.update(update.ref, update.data);
+        }
+        await batch.commit();
       }
-      await batch.commit();
-    }
+    }));
   }
 
   const [createdTransfers, acceptedTransfers] = await Promise.all([
@@ -574,7 +579,7 @@ export const deleteAccountData = onCall(async request => {
   ]);
   const transferRefs = new Map([...createdTransfers.docs, ...acceptedTransfers.docs]
     .map(doc => [doc.ref.path, doc.ref]));
-  for (const ref of transferRefs.values()) await ref.delete();
+  await Promise.all([...transferRefs.values()].map(ref => ref.delete()));
 
   await bucket.deleteFiles({ prefix: `users/${uid}/` });
   await db.recursiveDelete(db.doc(`users/${uid}`));
