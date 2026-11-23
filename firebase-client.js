@@ -298,7 +298,7 @@ if (!configured) {
     signIn: () => authSdk.signInWithPopup(auth, provider),
     signInWithEmail: (email, password) => authSdk.signInWithEmailAndPassword(auth, email, password),
     createAccountWithEmail: (email, password) => authSdk.createUserWithEmailAndPassword(auth, email, password),
-    sendPasswordReset: email => authSdk.sendPasswordResetEmail(auth, email, { url: new URL('./', window.location.href).href }),
+    sendPasswordReset: email => { auth.languageCode = 'sv'; return authSdk.sendPasswordResetEmail(auth, email, { url: new URL('./', window.location.href).href }); },
     async refreshCurrentUser() {
       const user = auth.currentUser;
       if (!user) return null;
