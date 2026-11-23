@@ -311,6 +311,7 @@ if (!configured) {
     },
     sendEmailVerification: () => {
       if (!auth.currentUser) throw new Error('Logga in för att verifiera e-postadressen.');
+      auth.languageCode = 'sv';
       return authSdk.sendEmailVerification(auth.currentUser, { url: new URL('./', window.location.href).href });
     },
     updateAccountProfile: (displayName, photoURL) => {
