@@ -227,3 +227,10 @@
 .footer-meta{display:flex;justify-content:space-between;align-items:center;gap:12px 20px;flex-wrap:wrap;padding-top:16px}
 .landing-footer .footer-guides{flex-basis:100%;padding-top:20px}
 @media(max-width:600px){.footer-guides{gap:10px 16px}.footer-meta{justify-content:flex-start;gap:12px 18px}}
+/* Keep the public landing footer in three clear columns on desktop. */
+.landing-footer{display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,1.25fr) minmax(190px,1fr);align-items:start;gap:28px}
+.landing-footer-brand{display:grid;justify-items:start;gap:9px;line-height:1.5}
+.landing-footer .footer-guides{display:grid;justify-content:start;gap:10px;padding:0;border:0;width:auto}
+.landing-footer .footer-guides strong{margin-bottom:2px}
+.landing-footer .footer-meta{display:grid;justify-content:start;align-content:start;gap:10px;padding:0}
+@media(max-width:720px){.landing-footer{grid-template-columns:1fr;gap:20px}.landing-footer-brand{padding-bottom:16px;border-bottom:1px solid var(--line)}}
