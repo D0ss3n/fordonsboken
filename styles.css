@@ -218,3 +218,12 @@
 .demo-vehicle-placeholder{align-content:center;gap:8px;color:var(--navy);font-size:13px;font-weight:700}.demo-vehicle-placeholder svg{width:48px;height:48px}
 
 @media(min-width:721px){.mock-content{grid-template-columns:minmax(0,1fr);gap:12px}.mock-content>div:last-child{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:stretch}.mock-content .stats{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr))}.mock-content .mini-event{margin-top:0;min-height:64px;display:flex;flex-direction:column;justify-content:center}}
+
+/* Helpful guide links in the app and public landing page footer. */
+.footer-guides{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;width:100%;padding:0 0 16px;border-bottom:1px solid var(--line)}
+.footer-guides strong{flex-basis:100%;color:var(--ink);font-size:13px}
+.footer-guides a,.footer-meta a{text-underline-offset:3px}
+.policy-footer{display:block}
+.footer-meta{display:flex;justify-content:space-between;align-items:center;gap:12px 20px;flex-wrap:wrap;padding-top:16px}
+.landing-footer .footer-guides{flex-basis:100%;padding-top:20px}
+@media(max-width:600px){.footer-guides{gap:10px 16px}.footer-meta{justify-content:flex-start;gap:12px 18px}}
