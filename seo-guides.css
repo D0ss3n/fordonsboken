@@ -1,0 +1,5 @@
+.policy-section a.seo-guide-cta,
+.policy-section a.seo-guide-cta:hover,
+.policy-section a.seo-guide-cta:focus-visible {
+  color: #fff;
+}
