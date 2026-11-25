@@ -14,6 +14,8 @@
     try{localStorage.setItem(key,fromUrl)}catch{}
   }
   document.documentElement.dataset.theme=theme;
+  const themeColor=document.querySelector('meta[name="theme-color"]');
+  if(themeColor)themeColor.content=theme==='dark'?'#111923':'#f6f6f2';
 
 
 })();
