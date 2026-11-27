@@ -150,7 +150,7 @@
     if (!suggestion) return;
     const dismissalKey = `fordonsmappen.next-step.dismissed:${eventId}`;
     try {
-      if (sessionStorage.getItem(dismissalKey) === 'true') return;
+      if (localStorage.getItem(dismissalKey) === 'true' || sessionStorage.getItem(dismissalKey) === 'true') return;
     } catch { /* Storage may be unavailable in private browsing. */ }
 
     const card = document.createElement('section');
